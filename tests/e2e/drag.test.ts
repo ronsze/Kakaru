@@ -1,9 +1,22 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { _electron as electron, expect, test } from '@playwright/test'
+import { _electron as electron, expect, test, type Page } from '@playwright/test'
 
 type Sample = { visible: boolean; x: number; y: number; state: string }
+
+/**
+ * 실제 마우스 대신 문서에 포인터 이벤트를 직접 보낸다. 테스트 중 사용자의 실제 마우스가 창 위를 지나면
+ * 합성 입력의 포인터 캡처가 풀려 결과가 흔들리기 때문이다.
+ */
+const press = (page: Page) =>
+  page.evaluate(() =>
+    document.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 1, bubbles: true }))
+  )
+const release = (page: Page) =>
+  page.evaluate(() =>
+    document.dispatchEvent(new PointerEvent('pointerup', { button: 0, pointerId: 1, bubbles: true }))
+  )
 
 test('잡으면 정지하고 놓으면 그 자리에서 재개한다 (FR-002, FR-004)', async () => {
   const app = await electron.launch({
@@ -66,23 +79,30 @@ test('잡고 커서가 움직이면 캐릭터가 오프셋을 유지하며 따�
   try {
     const page = await app.firstWindow()
     await new Promise((r) => setTimeout(r, 800))
-    await page.evaluate(() => {
-      ;(window as any).__u = []
-      ;(window as any).kakaru.onCharacterUpdate((u: Sample) => (window as any).__u.push(u))
-    })
+    const pages = app.windows()
+    for (const p of pages) {
+      await p.evaluate(() => {
+        ;(window as any).__u = []
+        ;(window as any).kakaru.onCharacterUpdate((u: Sample) => (window as any).__u.push(u))
+      })
+    }
+    // 캐릭터가 보이는 창의 마지막 업데이트를 읽는다 (창이 둘 이상이면 다른 창은 visible=false)
+    const latest = async (): Promise<Sample> => {
+      const all = await Promise.all(pages.map((p) => p.evaluate(() => (window as any).__u.at(-1) as Sample | undefined)))
+      return all.find((u) => u?.visible) as Sample
+    }
     // 실제 마우스 대신 메인의 커서 위치를 고정값으로 바꿔 끄는 동작을 흉내 낸다
     await app.evaluate(({ screen }) => {
       ;(globalThis as any).__cur = { x: 500, y: 500 }
       screen.getCursorScreenPoint = () => (globalThis as any).__cur
     })
-    await page.mouse.move(500, 500)
-    await page.mouse.down()
+    await press(page)
     await new Promise((r) => setTimeout(r, 300))
-    const start = (await page.evaluate(() => (window as any).__u.at(-1))) as Sample
+    const start = await latest()
     await app.evaluate(() => ((globalThis as any).__cur = { x: 700, y: 560 }))
     await new Promise((r) => setTimeout(r, 300))
-    const moved = (await page.evaluate(() => (window as any).__u.at(-1))) as Sample
-    await page.mouse.up()
+    const moved = await latest()
+    await release(page)
     expect(moved.state).toBe('UserControlled')
     expect(moved.x - start.x).toBeCloseTo(200, 0)
     expect(moved.y - start.y).toBeCloseTo(60, 0)
@@ -120,14 +140,18 @@ test('5초 넘게 잡으면 발버둥 모션이 시작되고 놓으면 사라진
     await app.evaluate(({ screen }) => {
       screen.getCursorScreenPoint = () => ({ x: 500, y: 500 })
     })
-    await page.mouse.move(500, 500)
-    await page.mouse.down()
+    await press(page)
     await new Promise((r) => setTimeout(r, 4000))
     expect(await struggling()).toBe(false)
-    await new Promise((r) => setTimeout(r, 1500))
-    expect(await struggling()).toBe(true)
-    await page.mouse.up()
-    expect(await struggling()).toBe(false)
+    await expect.poll(struggling, { timeout: 4000 }).toBe(true)
+    // 발버둥 중에는 정지 이미지가 아니라 걷기 이미지가 보인다
+    const shown = await page.evaluate(() => ({
+      walk: getComputedStyle(document.getElementById('walk')!).display,
+      idle: getComputedStyle(document.getElementById('idle')!).display
+    }))
+    expect(shown).toEqual({ walk: 'block', idle: 'none' })
+    await release(page)
+    await expect.poll(struggling, { timeout: 2000 }).toBe(false)
   } finally {
     await app.close()
   }

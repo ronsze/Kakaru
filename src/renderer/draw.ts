@@ -112,7 +112,12 @@ document.addEventListener('pointerdown', (e) => {
   // macOS의 Ctrl+클릭은 우클릭 메뉴로 취급한다
   if (e.button !== 0 || e.ctrlKey || grabbing) return
   grabbing = true
-  document.documentElement.setPointerCapture(e.pointerId)
+  try {
+    // 포인터 캡처는 창 밖에서 놓아도 pointerup을 받기 위한 보조 수단이라 실패해도 잡기는 계속한다
+    document.documentElement.setPointerCapture(e.pointerId)
+  } catch {
+    /* 캡처할 수 없는 포인터 */
+  }
   window.kakaru.grabStart()
   struggleTimer = setTimeout(() => actor.classList.add('struggling'), STRUGGLE_AFTER_MS)
 })

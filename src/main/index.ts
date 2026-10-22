@@ -27,6 +27,13 @@ const SAMPLES: SampleCharacter[] = [
     frames: 4,
     frameSize: 200,
     dir: join(app.getAppPath(), 'resources', 'characters', 'bmm')
+  },
+  {
+    key: 'me',
+    name: '나',
+    frames: 8,
+    frameSize: 200,
+    dir: join(app.getAppPath(), 'resources', 'characters', 'me')
   }
 ]
 

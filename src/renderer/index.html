@@ -51,6 +51,13 @@
       #actor.struggling #sprite {
         animation: struggle 0.5s steps(1, end) infinite;
       }
+      /* 발버둥은 정지 이미지가 아니라 걷기 이미지를 쓴다 */
+      #actor.struggling #sprite #walk {
+        display: block;
+      }
+      #actor.struggling #sprite #idle {
+        display: none;
+      }
       @keyframes struggle {
         0% {
           transform: scale(var(--scale)) rotate(-6deg);
