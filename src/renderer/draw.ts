@@ -8,22 +8,24 @@ declare global {
 
 type Poly = [number, number][]
 
+const SIZE = 200
+const HALF = SIZE / 2
+/** SC-007(30fps 이상)을 만족하는 최소 프레임 간격. 60fps로 돌릴 필요가 없다. */
+const FRAME_INTERVAL_MS = 1000 / 32
+
 const canvas = document.getElementById('stage') as HTMLCanvasElement
 const ctx = canvas.getContext('2d')!
 
 let latest: CharacterUpdate | null = null
-/** 지난 프레임에 그린 영역. 전체 화면을 매번 지우면 투명 창 합성 비용이 커서 이 영역만 지운다. */
-let dirty: { x: number; y: number } | null = null
+/** latest를 받은 시각. 이동 중 위치는 속도로 이어서 계산한다. */
+let receivedAt = 0
 let rafId = 0
-const MARGIN = 90
-/** SC-007(30fps 이상)을 만족하는 최소 프레임 간격. 전체 화면 투명 창은 합성 비용이 커서 60fps로 돌리지 않는다. */
-const FRAME_INTERVAL_MS = 1000 / 32
 let lastFrameAt = 0
 
-function resize(): void {
+function setupCanvas(): void {
   const dpr = window.devicePixelRatio || 1
-  canvas.width = Math.round(window.innerWidth * dpr)
-  canvas.height = Math.round(window.innerHeight * dpr)
+  canvas.width = Math.round(SIZE * dpr)
+  canvas.height = Math.round(SIZE * dpr)
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 }
 
@@ -39,10 +41,10 @@ function fillPoly(points: Poly, color: string): void {
 function drawCharacter(update: CharacterUpdate, t: number): void {
   const walking = update.state === 'Walking'
   const swing = walking ? Math.sin(t / 90) : 0
-  const bob = walking ? Math.abs(Math.sin(t / 90)) * -3 : Math.sin(t / 600) * 1.5
+  const bob = walking ? Math.abs(Math.sin(t / 90)) * -3 : 0
 
   ctx.save()
-  ctx.translate(update.x, update.y + bob)
+  ctx.translate(HALF, HALF + bob)
   ctx.scale(update.heading, 1)
 
   // 다리 (앞뒤로 흔든다)
@@ -65,39 +67,53 @@ function drawCharacter(update: CharacterUpdate, t: number): void {
   ctx.restore()
 }
 
-function clearDirty(): void {
-  if (!dirty) return
-  ctx.clearRect(dirty.x - MARGIN, dirty.y - MARGIN, MARGIN * 2, MARGIN * 2)
-  dirty = null
+function place(t: number): void {
+  if (!latest) return
+  const elapsed = Math.max(0, (t - receivedAt) / 1000)
+  const x = latest.x + latest.vx * elapsed
+  const y = latest.y + latest.vy * elapsed
+  canvas.style.transform = `translate(${x - HALF}px, ${y - HALF}px)`
 }
 
-function frame(t: number): void {
+function draw(t: number): void {
+  if (!latest) return
+  place(t)
+  ctx.clearRect(0, 0, SIZE, SIZE)
+  drawCharacter(latest, t)
+}
+
+/** 걷는 동안만 rAF로 계속 그린다. 정지 중에는 정지 자세를 한 번만 그리고 멈춘다 (CPU 절약). */
+function loop(): void {
   rafId = 0
-  if (t - lastFrameAt < FRAME_INTERVAL_MS) {
-    rafId = requestAnimationFrame(frame)
+  if (!latest?.visible) return
+  if (latest.state === 'Walking') {
+    rafId = requestAnimationFrame((t) => {
+      if (t - lastFrameAt >= FRAME_INTERVAL_MS) {
+        lastFrameAt = t
+        draw(t)
+      }
+      loop()
+    })
+  } else {
+    draw(performance.now())
+  }
+}
+
+function restart(): void {
+  if (rafId) cancelAnimationFrame(rafId)
+  loop()
+}
+
+function apply(update: CharacterUpdate): void {
+  latest = update
+  receivedAt = performance.now()
+  if (!update.visible) {
+    canvas.style.display = 'none'
     return
   }
-  lastFrameAt = t
-  clearDirty()
-  if (latest?.visible) {
-    drawCharacter(latest, t)
-    dirty = { x: latest.x, y: latest.y }
-    // 캐릭터가 보이는 동안만 프레임을 돌린다
-    rafId = requestAnimationFrame(frame)
-  }
+  canvas.style.display = 'block'
+  restart()
 }
 
-function schedule(): void {
-  if (!rafId) rafId = requestAnimationFrame(frame)
-}
-
-resize()
-window.addEventListener('resize', () => {
-  resize()
-  dirty = null
-  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
-})
-window.kakaru.onCharacterUpdate((update) => {
-  latest = update
-  schedule()
-})
+setupCanvas()
+window.kakaru.onCharacterUpdate(apply)

@@ -1,8 +1,8 @@
 import { _electron as electron, expect, test } from '@playwright/test'
 
-type Sample = { visible: boolean; x: number; y: number }
+type Sample = { visible: boolean; x: number; y: number; vx: number; vy: number; state: string }
 
-test('앱 기동 후 5초 안에 캐릭터 위치가 변한다 (SC-001)', async () => {
+test('앱 기동 후 5초 안에 캐릭터가 이동을 시작한다 (SC-001)', async () => {
   const app = await electron.launch({ args: ['.'] })
   try {
     await app.firstWindow()
@@ -26,8 +26,9 @@ test('앱 기동 후 5초 안에 캐릭터 위치가 변한다 (SC-001)', async 
     )
     const visible = results.flat().filter((s) => s.visible)
     expect(visible.length).toBeGreaterThan(0)
-    const moved = visible.some((s) => s.x !== visible[0].x || s.y !== visible[0].y)
-    expect(moved).toBe(true)
+    // 이동은 Walking 상태와 0이 아닌 속도로 시작된다
+    const started = visible.some((s) => s.state === 'Walking' && (s.vx !== 0 || s.vy !== 0))
+    expect(started).toBe(true)
   } finally {
     await app.close()
   }

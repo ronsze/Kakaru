@@ -15,10 +15,16 @@
         overflow: hidden;
         background: transparent;
       }
+      /* 전체 화면 크기 캔버스를 다시 그리면 투명 창 합성 비용이 커서, 캐릭터 크기의 작은 캔버스를
+         transform으로 옮긴다 (compositor만 위치를 바꾸므로 다시 그리지 않는다). */
       canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 200px;
+        height: 200px;
+        will-change: transform;
       }
     </style>
   </head>

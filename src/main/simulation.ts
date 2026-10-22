@@ -24,6 +24,11 @@ let timer: NodeJS.Timeout | undefined
 let lastTime = 0
 let clock = 0
 const lastVisible = new Map<number, boolean>()
+let afterTick: (() => void) | undefined
+let lastSignature = ''
+let lastSentAt = 0
+/** 이동 중 렌더러 위치 보정 주기 (ms) */
+const RESYNC_MS = 1000
 
 function buildArea(): void {
   const displays = screen.getAllDisplays()
@@ -36,11 +41,21 @@ function onDisplaysChanged(): void {
   overlays.sync()
   buildArea()
   engine.setWalkableArea(area)
+  lastVisible.clear()
+  broadcast(engine.getCharacter(), true)
 }
 
-function broadcast(character: Character): void {
+function broadcast(character: Character, force = false): void {
   const index = area.displayAt(character.position)
   const rect = index === null ? null : area.displays[index]
+
+  // 변화가 없으면 IPC를 보내지 않는다. 이동 중 위치는 렌더러가 속도로 이어서 계산하고,
+  // 오차가 쌓이지 않도록 RESYNC_MS마다 한 번 보정한다.
+  const signature = `${index === null ? '' : displayIds[index]}|${character.heading}|${character.state}`
+  const stale = clock - lastSentAt >= RESYNC_MS && character.state === 'Walking'
+  if (!force && signature === lastSignature && !stale) return
+  lastSignature = signature
+  lastSentAt = clock
   for (const [id, win] of overlays.all()) {
     if (win.isDestroyed()) continue
     const visible = index !== null && displayIds[index] === id
@@ -51,6 +66,8 @@ function broadcast(character: Character): void {
       visible,
       x: visible && rect ? character.position.x - rect.x : 0,
       y: visible && rect ? character.position.y - rect.y : 0,
+      vx: character.velocity.x,
+      vy: character.velocity.y,
       heading: character.heading,
       state: character.state
     }
@@ -64,10 +81,13 @@ function tick(): void {
   lastTime = t
   clock += dt * 1000
   broadcast(engine.tick(clock, dt))
+  afterTick?.()
 }
 
-export function startSimulation(manager: OverlayManager): void {
+/** @param onTick 매 틱 뒤에 호출된다 (히트 테스트가 타이머를 따로 두지 않게 한다) */
+export function startSimulation(manager: OverlayManager, onTick?: () => void): void {
   overlays = manager
+  afterTick = onTick
   buildArea()
   engine = new MovementEngine({ area, random: Math.random, startAt: 0 })
 
@@ -94,7 +114,7 @@ export function stopSimulation(): void {
  */
 export function setUserControlled(active: boolean): void {
   engine.setUserControlled(active, clock)
-  broadcast(engine.getCharacter())
+  broadcast(engine.getCharacter(), true)
 }
 
 /** 히트 테스트가 쓰는 현재 캐릭터·이동 가능 영역 */
