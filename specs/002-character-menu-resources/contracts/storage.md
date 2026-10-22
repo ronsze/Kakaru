@@ -13,6 +13,7 @@
   "version": 1,
   "activeId": "k3x9a1b2",
   "seeded": ["bmm"],
+  "scale": 1.4,
   "characters": [
     { "id": "k3x9a1b2", "name": "고양이", "frames": 8, "frameSize": 200, "createdAt": 1792000000000 }
   ]
@@ -20,6 +21,7 @@
 ```
 
 - `activeId`가 `null`이면 기본 캐릭터다.
+- `scale`(선택, 003에서 추가)은 캐릭터 크기 배율이다. 없으면 1이고, 로드할 때 0.5~3 범위·소수 둘째 자리로 맞춘다. 숫자가 아니면 손상으로 본다.
 - `seeded`(선택)는 처음 실행 때 등록한 샘플 캐릭터 키 목록이다. 키가 있으면 그 샘플을 다시 등록하지 않는다.
 - `id`는 `^[a-z0-9]{8,32}$`만 허용하며, 이미지 경로는 항상 `characters/<id>/walk.png`,
   `characters/<id>/idle.png`로 고정한다(경로 조작 방지).

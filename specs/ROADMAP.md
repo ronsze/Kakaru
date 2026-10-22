@@ -47,5 +47,5 @@
 
 - 스택: Electron + TypeScript + electron-vite, Vitest(단위), Playwright(Electron E2E). 렌더링은 `<img>`+CSS(canvas 아님).
 - 구조·함정·작업 규칙은 `CLAUDE.md`. 설계 결정은 각 `specs/NNN-*/research.md`.
-- 저장: `~/Library/Application Support/kakaru/settings.json` + `characters/<id>/`. 형식은 `specs/002-character-menu-resources/contracts/storage.md`(`scale`, `seeded` 필드 추가는 반영 전이므로 `settings.json` 실물과 `src/main/characters-store.ts`를 기준으로 본다).
+- 저장: `~/Library/Application Support/kakaru/settings.json` + `characters/<id>/`. 형식은 `specs/002-character-menu-resources/contracts/storage.md`(`seeded`, `scale` 필드 포함).
 - 수동 검증 기록: `tests/manual/results.md`.
