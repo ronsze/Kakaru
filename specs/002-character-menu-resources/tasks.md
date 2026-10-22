@@ -69,7 +69,7 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 - [x] T011 [US1] `src/main/settings-window.ts`에 `openSettingsWindow()`를 구현한다(T010 의존): 프레임이 있는 포커스 가능 `BrowserWindow`(약 720×560, 크기 고정, 제목 "캐릭터 설정", `contextIsolation: true`, `sandbox: true`, preload는 `out/preload/settings.js`), 이미 열려 있으면 새로 만들지 않고 앞으로 가져옴, 닫히면 파괴. 개발 서버에서는 `${ELECTRON_RENDERER_URL}/settings.html`, 빌드 후에는 `out/renderer/settings.html`을 로드한다. 앱 인자 `--open-settings`가 있으면 시작 직후 연다
 - [x] T012 [US1] `src/shared/context-menu-controller.ts`(순수 메뉴 상태 로직)와 `src/main/context-menu.ts`(Electron 연결)를 구현한다(T008, T009, T011 의존): 메뉴 컨트롤러와 Electron 연결(`Menu.buildFromTemplate`로 "캐릭터 설정" 항목 하나, `popup({ window, callback })`). 메뉴를 열 때 `simulation.setUserControlled(true)`, 닫힘 콜백에서 `false`를 호출한다
 - [x] T013 [US1] `src/main/overlay.ts`의 오버레이 창 생성 시 `webContents`의 `context-menu` 이벤트를 메뉴 컨트롤러에 연결하고, `src/main/index.ts`에서 컨트롤러를 만들어 `openSettingsWindow`와 `setUserControlled`를 주입한다(T012 의존)
-- [ ] T014 [US1] macOS에서 quickstart.md 수동 #1~#7을 실행하고 결과를 `tests/manual/results.md`의 002 섹션에 기록한다
+- [x] T014 [US1] [macOS #1~#7 통과, Windows는 후속] macOS에서 quickstart.md 수동 #1~#7을 실행하고 결과를 `tests/manual/results.md`의 002 섹션에 기록한다
 
 **Checkpoint**: 이 시점에 US1은 단독으로 완전히 동작하고 검증 가능해야 한다(MVP)
 

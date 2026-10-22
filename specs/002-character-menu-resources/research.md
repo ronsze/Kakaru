@@ -27,7 +27,7 @@
   발생하지 않으면 렌더러에서 `contextmenu` DOM 이벤트를 받아 IPC로 알리는 방식으로 바꾼다.
 - **스파이크 결과(macOS, 2026-10-22)**: `focusable: false` 오버레이 창 2개(디스플레이 2대) 모두에서
   `webContents.sendInputEvent`로 보낸 우클릭이 `context-menu` 이벤트를 발생시켰다(좌표 전달 확인).
-  실제 마우스 우클릭과 Windows는 수동 검증이 필요하다.
+  실제 마우스 우클릭은 수동 검증(macOS #1~#7)에서 통과했다. Windows는 후속 검증이다.
 
 ## R3. 메뉴 열림 동안의 이동 정지
 
