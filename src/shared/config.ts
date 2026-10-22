@@ -16,5 +16,19 @@ export const config = {
    * 캐릭터 확대·축소 (배율). 한 번에 변하는 양과 최소·최대는 써 보면서 조정한다.
    * 배율은 소수 둘째 자리로 반올림해 저장한다.
    */
-  scale: { default: 1, step: 0.2, min: 0.5, max: 3 }
+  scale: { default: 1, step: 0.2, min: 0.5, max: 3 },
+  /** 캐릭터를 이만큼(ms) 계속 잡고 있으면 발버둥 모션과 "오래 잡혔을 때" 대사가 시작된다 */
+  struggleAfterMs: 5000,
+  /**
+   * 말풍선·혼잣말. 값은 써 보면서 조정한다.
+   * 표시 시간은 baseMs + perCharMs × 글자 수를 displayMs 범위로 맞춘 값이다.
+   */
+  speech: {
+    intervalMs: { min: 20_000, max: 40_000 },
+    displayMs: { min: 3000, max: 8000 },
+    baseMs: 2000,
+    perCharMs: 150,
+    maxLength: 60,
+    maxPerCategory: 50
+  }
 } as const

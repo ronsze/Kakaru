@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '../shared/config'
+import { DEFAULT_LINES, emptyLines, sanitizeLines, type Lines } from '../shared/dialogue'
 import {
   ID_PATTERN,
   LIMITS,
@@ -214,6 +215,34 @@ export class CharacterStore {
     } catch {
       /* 무시 */
     }
+  }
+
+  /**
+   * 활성 캐릭터의 대화셋 (contracts/lines-file.md). 기본 캐릭터는 내장 문장이고,
+   * 등록한 캐릭터는 lines.json이 없거나 깨졌으면 모두 빈 목록이다(다른 문장으로 대체하지 않는다).
+   */
+  readLines(): Lines {
+    const id = this.settings.activeId
+    if (id === null) return DEFAULT_LINES
+    try {
+      return sanitizeLines(JSON.parse(readFileSync(join(this.characterDir(id), 'lines.json'), 'utf8')))
+    } catch {
+      return emptyLines()
+    }
+  }
+
+  hasLinesFile(id: string): boolean {
+    return existsSync(join(this.characterDir(id), 'lines.json'))
+  }
+
+  /** 샘플 캐릭터의 lines.json 내용을 캐릭터 폴더에 쓴다 */
+  writeLinesFile(id: string, content: Buffer): void {
+    writeFileSync(join(this.characterDir(id), 'lines.json'), content)
+  }
+
+  /** 샘플을 이미 등록한 적이 있는지 */
+  isSeeded(key: string): boolean {
+    return this.settings.seeded?.includes(key) ?? false
   }
 
   /** 캐릭터 이미지를 읽는다. 없거나 읽을 수 없으면 null. */

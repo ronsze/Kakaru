@@ -47,6 +47,50 @@
         transform: scale(calc(-1 * var(--scale)), var(--scale));
       }
       /* <img>는 기본적으로 끌 수 있어, 누른 채 움직이면 브라우저 드래그가 시작되며 포인터 이벤트가 취소된다 */
+      /* 말풍선: #actor 안에 있어 캐릭터가 걷는 동안 CSS로 함께 움직인다. 스프라이트 위쪽(배율 반영)에 붙는다.
+         --shift는 화면 가장자리에서 잘리지 않게 draw.ts가 정하는 가로 보정값이다. */
+      #bubble {
+        --gap: 8px;
+        --shift: 0px;
+        display: none;
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: max-content;
+        max-width: 200px;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        background: #fff;
+        color: #222;
+        border: 2px solid #222;
+        border-radius: 12px;
+        font: 13px/1.4 -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        pointer-events: none;
+        transform: translate(calc(-50% + var(--shift)), calc(-100% + 50px - 50px * var(--scale) - var(--gap)));
+      }
+      #bubble.below {
+        transform: translate(calc(-50% + var(--shift)), calc(50px + 50px * var(--scale) + var(--gap)));
+      }
+      /* 꼬리: 말풍선이 옆으로 밀려도 캐릭터 쪽을 가리킨다 */
+      #bubble::after {
+        content: '';
+        position: absolute;
+        left: calc(50% - var(--shift));
+        bottom: -8px;
+        width: 10px;
+        height: 10px;
+        background: #fff;
+        border-right: 2px solid #222;
+        border-bottom: 2px solid #222;
+        transform: translateX(-50%) rotate(45deg);
+      }
+      #bubble.below::after {
+        bottom: auto;
+        top: -8px;
+        transform: translateX(-50%) rotate(225deg);
+      }
       /* 오래 잡혀 있으면 발버둥: 좌우를 번갈아 보며 살짝 흔들린다 (transform 애니메이션이라 compositor가 처리) */
       #actor.struggling #sprite {
         animation: struggle 0.5s steps(1, end) infinite;
@@ -102,6 +146,7 @@
   <body>
     <div id="actor">
       <div id="sprite" class="idle"><img id="walk" alt="" /><img id="idle" alt="" /></div>
+      <div id="bubble"></div>
     </div>
     <script type="module" src="./draw.ts"></script>
   </body>

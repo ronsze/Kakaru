@@ -11,6 +11,7 @@ import type {
   ValidationResult
 } from '../shared/ipc'
 import { config } from '../shared/config'
+import type { Lines } from '../shared/dialogue'
 import type { CharacterStore } from './characters-store'
 
 /** 기본 캐릭터 이미지의 프레임 한 변 (번들된 assets/walk.png, idle.png) */
@@ -39,6 +40,14 @@ function toBytes(value: unknown): Uint8Array {
   throw new Error('이미지 데이터가 올바르지 않습니다.')
 }
 
+function readOptional(path: string): Buffer | null {
+  try {
+    return readFileSync(path)
+  } catch {
+    return null
+  }
+}
+
 function toDataUrl(bytes: Buffer): string {
   return `data:image/png;base64,${bytes.toString('base64')}`
 }
@@ -50,7 +59,6 @@ function toDataUrl(bytes: Buffer): string {
 export class CharacterService {
   private readonly now: () => number
   private readonly makeId: () => string
-
   constructor(
     private readonly store: CharacterStore,
     private readonly inspector: ImageInspector,
@@ -169,9 +177,36 @@ export class CharacterService {
         frameSize: sample.frameSize,
         createdAt: this.now()
       }
-      if (this.store.seedSample(sample.key, meta, walk, idle)) installed++
+      if (this.store.seedSample(sample.key, meta, walk, idle)) {
+        installed++
+        const lines = readOptional(join(sample.dir, 'lines.json'))
+        if (lines) this.store.writeLinesFile(meta.id, lines)
+      }
     }
     return installed
+  }
+
+  /**
+   * 대화셋(lines.json)이 생기기 전에 설치한 샘플에 문장을 채운다. 설치 기록(키)이 있고 같은 이름의
+   * 캐릭터에 lines.json이 없을 때만 복사하며, 이미 있으면 덮어쓰지 않는다. (research R6)
+   */
+  backfillSampleLines(samples: readonly SampleCharacter[]): number {
+    let filled = 0
+    for (const sample of samples) {
+      if (!this.store.isSeeded(sample.key)) continue
+      const character = this.store.list().find((c) => c.name === sample.name)
+      if (!character || this.store.hasLinesFile(character.id)) continue
+      const lines = readOptional(join(sample.dir, 'lines.json'))
+      if (!lines) continue
+      this.store.writeLinesFile(character.id, lines)
+      filled++
+    }
+    return filled
+  }
+
+  /** 활성 캐릭터의 대화셋 */
+  lines(): Lines {
+    return this.store.readLines()
   }
 
   /** 현재 크기와 더 확대·축소할 수 있는지 (메뉴 항목의 활성 여부에 쓴다) */

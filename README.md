@@ -55,3 +55,21 @@ npm run test:e2e   # Electron E2E (Playwright, 빌드 후 앱을 실제로 띄�
 - `src/shared`: Electron에 의존하지 않는 순수 로직 (이동 상태 머신, 영역, 히트 판정)
 
 설계 문서는 `specs/`와 `.specify/memory/constitution.md`(프로젝트 헌장)를 본다.
+
+## 캐릭터 대사 (`lines.json`)
+
+캐릭터가 혼잣말·반응으로 하는 말은 캐릭터 폴더의 `lines.json`에 둔다. 샘플 캐릭터는 `resources/characters/<키>/lines.json`이고, 등록된 캐릭터는 `characters/<id>/lines.json`(사용자 데이터 폴더)을 읽는다. 파일이 없거나 깨져 있으면 그 캐릭터는 말하지 않는다(기본 캐릭터는 코드에 내장된 문장을 쓴다).
+
+```json
+{
+  "version": 1,
+  "lines": {
+    "normal": ["평소에 가끔 하는 말"],
+    "grabbed": ["잡혔을 때 하는 말"],
+    "struggling": ["5초 넘게 잡혔을 때 하는 말"]
+  }
+}
+```
+
+- 분류는 `normal`, `grabbed`, `struggling` 세 가지이고 모든 캐릭터가 같다. 없는 분류는 비어 있는 것으로 본다.
+- 문장은 앞뒤 공백을 지운 뒤 1~60자여야 하고(빈 문장·초과는 제외), 분류당 최대 50개다.

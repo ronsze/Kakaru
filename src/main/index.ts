@@ -55,6 +55,7 @@ app.whenReady().then(() => {
   store.load()
   const characters = new CharacterService(store, nativeImageInspector)
   characters.installSamples(SAMPLES)
+  characters.backfillSampleLines(SAMPLES)
   // 활성 캐릭터의 모습. 오버레이 창이 로드를 마칠 때마다, 그리고 바뀔 때마다 보낸다.
   let appearance = characters.appearance()
   const sendAppearance = (win: BrowserWindow) => win.webContents.send(CHANNEL_APPEARANCE, appearance)
@@ -91,7 +92,7 @@ app.whenReady().then(() => {
   overlays.sync()
   // visibleOnFullScreen 설정이 Dock 아이콘을 다시 보이게 할 수 있어 창 생성 뒤 한 번 더 숨긴다
   if (process.platform === 'darwin') app.dock?.hide()
-  startSimulation(overlays, createHitTest(overlays))
+  startSimulation(overlays, createHitTest(overlays), () => characters.lines())
   setCharacterScale(appearance.scale)
 
   // 개발·테스트용: 시작하자마자 설정 창을 연다

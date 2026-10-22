@@ -3,8 +3,10 @@ import { powerMonitor, screen } from 'electron'
 import { WalkableArea } from '../shared/area'
 import { MovementEngine } from '../shared/behavior'
 import { config } from '../shared/config'
+import type { Lines } from '../shared/dialogue'
 import { DragController } from '../shared/drag-controller'
 import { CHANNEL_CHARACTER_UPDATE, type CharacterUpdate } from '../shared/ipc'
+import { Speaker } from '../shared/speaker'
 import type { Character } from '../shared/types'
 import type { OverlayManager } from './overlay'
 
@@ -19,6 +21,10 @@ export type SimulationSnapshot = {
 
 let engine: MovementEngine
 let drag: DragController
+let speaker: Speaker
+/** 잡기를 시작한 시각과 "오래 잡혔을 때" 대사를 이미 했는지 */
+let grabStartedAt = 0
+let struggled = false
 let menuOpen = false
 let area: WalkableArea
 let displayIds: number[] = []
@@ -30,8 +36,9 @@ const lastVisible = new Map<number, boolean>()
 let afterTick: (() => void) | undefined
 let lastSignature = ''
 let lastSentAt = 0
-/** 이동 중 렌더러 위치 보정 주기 (ms) */
+/** 이동 중 렌더러 위치 보정 주기 (ms). 말풍선이 떠 있으면 가장자리 보정을 위해 더 자주 보낸다 */
 const RESYNC_MS = 1000
+const RESYNC_SPEAKING_MS = 250
 
 function buildArea(): void {
   const displays = screen.getAllDisplays()
@@ -55,8 +62,10 @@ function broadcast(character: Character, force = false): void {
 
   // 변화가 없으면 IPC를 보내지 않는다. 이동 중 위치는 렌더러가 속도로 이어서 계산하고,
   // 오차가 쌓이지 않도록 RESYNC_MS마다 한 번 보정한다.
-  const signature = `${index === null ? '' : displayIds[index]}|${character.heading}|${character.state}`
-  const stale = clock - lastSentAt >= RESYNC_MS && character.state === 'Walking'
+  const speech = speaker.current(clock)
+  const signature = `${index === null ? '' : displayIds[index]}|${character.heading}|${character.state}|${speech?.id ?? ''}`
+  const resync = speech ? RESYNC_SPEAKING_MS : RESYNC_MS
+  const stale = clock - lastSentAt >= resync && character.state === 'Walking'
   if (!force && signature === lastSignature && !stale) return
   lastSignature = signature
   lastSentAt = clock
@@ -73,7 +82,11 @@ function broadcast(character: Character, force = false): void {
       vx: character.velocity.x,
       vy: character.velocity.y,
       heading: character.heading,
-      state: character.state
+      state: character.state,
+      speech:
+        visible && speech
+          ? { id: speech.id, text: speech.text, remainingMs: Math.max(0, speech.until - clock) }
+          : null
     }
     win.webContents.send(CHANNEL_CHARACTER_UPDATE, update)
   }
@@ -84,6 +97,11 @@ function tick(): void {
   const dt = Math.min((t - lastTime) / 1000, MAX_DT_SECONDS)
   lastTime = t
   clock += dt * 1000
+  speaker.update(clock, { muted: menuOpen || drag.active })
+  if (drag.active && !struggled && clock - grabStartedAt >= config.struggleAfterMs) {
+    struggled = true
+    speaker.say('struggling', clock)
+  }
   if (drag.active) {
     const before = engine.getCharacter().position
     drag.update()
@@ -96,12 +114,20 @@ function tick(): void {
   afterTick?.()
 }
 
-/** @param onTick 매 틱 뒤에 호출된다 (히트 테스트가 타이머를 따로 두지 않게 한다) */
-export function startSimulation(manager: OverlayManager, onTick?: () => void): void {
+/**
+ * @param onTick 매 틱 뒤에 호출된다 (히트 테스트가 타이머를 따로 두지 않게 한다)
+ * @param getLines 지금 활성 캐릭터의 대화셋 (혼잣말·잡기 대사에 쓴다)
+ */
+export function startSimulation(
+  manager: OverlayManager,
+  onTick: (() => void) | undefined,
+  getLines: () => Lines
+): void {
   overlays = manager
   afterTick = onTick
   buildArea()
   engine = new MovementEngine({ area, random: Math.random, startAt: 0 })
+  speaker = new Speaker({ random: Math.random, getLines, startAt: 0 })
   drag = new DragController({
     getCursor: () => screen.getCursorScreenPoint(),
     getPosition: () => engine.getCharacter().position,
@@ -141,7 +167,12 @@ export function setMenuOpen(open: boolean): void {
 
 /** 렌더러가 캐릭터를 잡기 시작·끝냈다 (드래그 이동) */
 export function startGrab(): void {
+  const wasActive = drag.active
   drag.start()
+  if (!drag.active || wasActive) return
+  grabStartedAt = clock
+  struggled = false
+  speaker.say('grabbed', clock)
 }
 
 export function endGrab(): void {

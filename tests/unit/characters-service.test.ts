@@ -196,6 +196,52 @@ describe('CharacterService.installSamples', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  const LINES = JSON.stringify({ version: 1, lines: { normal: ['샘플 말'] } })
+
+  it('샘플 폴더에 lines.json이 있으면 설치할 때 함께 복사된다 (FR-008)', () => {
+    const { service, store } = setup()
+    const dir = sampleDir()
+    writeFileSync(join(dir, 'lines.json'), LINES)
+    service.installSamples([sample(dir)])
+    const id = service.list().characters[1].id as string
+    service.apply(id)
+    expect(store.readLines().normal).toEqual(['샘플 말'])
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('005 이전에 설치된 샘플(lines.json 없음)은 시작할 때 채워진다', () => {
+    const { service, store } = setup()
+    const dir = sampleDir()
+    service.installSamples([sample(dir)]) // lines.json 없이 설치
+    writeFileSync(join(dir, 'lines.json'), LINES)
+    expect(service.backfillSampleLines([sample(dir)])).toBe(1)
+    service.apply(service.list().characters[1].id as string)
+    expect(store.readLines().normal).toEqual(['샘플 말'])
+    // 이미 있으면 덮어쓰지 않는다
+    writeFileSync(join(dir, 'lines.json'), JSON.stringify({ version: 1, lines: { normal: ['바뀐 말'] } }))
+    expect(service.backfillSampleLines([sample(dir)])).toBe(0)
+    expect(store.readLines().normal).toEqual(['샘플 말'])
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('설치된 적 없는 샘플은 채우지 않는다', () => {
+    const { service } = setup()
+    const dir = sampleDir()
+    writeFileSync(join(dir, 'lines.json'), LINES)
+    expect(service.backfillSampleLines([sample(dir)])).toBe(0)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('사용자가 등록한 캐릭터는 문장이 비어 있다 (FR-014)', () => {
+    const { service, store } = setup()
+    const dir = sampleDir()
+    service.installSamples([sample(dir)])
+    store.add({ id: 'user0001', name: '내 캐릭터', frames: 4, frameSize: 200, createdAt: 1 }, Buffer.from([0]), Buffer.from([0]))
+    service.apply('user0001')
+    expect(store.readLines()).toEqual({ normal: [], grabbed: [], struggling: [] })
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it('이미지 파일이 없으면 건너뛴다', () => {
     const { service } = setup()
     expect(service.installSamples([sample(join(root, 'nothing'))])).toBe(0)

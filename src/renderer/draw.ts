@@ -1,4 +1,5 @@
 import type { Appearance, CharacterUpdate, KakaruApi } from '../shared/ipc'
+import { config } from '../shared/config'
 import idleUrl from './assets/idle.png'
 import walkUrl from './assets/walk.png'
 
@@ -73,9 +74,50 @@ function move(x: number, y: number, vx: number, vy: number): void {
   actor.style.transform = `translate(${x + vx * GLIDE_SECONDS - HALF}px, ${y + vy * GLIDE_SECONDS - HALF}px)`
 }
 
+const bubble = document.getElementById('bubble') as HTMLDivElement
+/** 화면 가장자리와 말풍선 사이 최소 여백 (px) */
+const BUBBLE_MARGIN = 8
+let bubbleId = 0
+let bubbleTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 같은 발화(id)가 업데이트로 다시 와도, 이미 숨긴 말풍선은 되살리지 않는다 */
+let bubbleHidden = true
+
+function hideBubble(): void {
+  clearTimeout(bubbleTimer)
+  bubbleHidden = true
+  bubble.style.display = 'none'
+}
+
+/**
+ * 말풍선을 보이고 화면 안에 들어오게 위치를 보정한다. 숨김 타이머는 새 발화(id 변경)일 때만 건다.
+ * 위쪽 공간이 모자라면 캐릭터 아래에 표시한다.
+ */
+function showBubble(speech: NonNullable<CharacterUpdate['speech']>, x: number, y: number): void {
+  if (speech.id !== bubbleId) {
+    bubbleId = speech.id
+    bubbleHidden = false
+    bubble.textContent = speech.text
+    clearTimeout(bubbleTimer)
+    bubbleTimer = setTimeout(hideBubble, speech.remainingMs)
+  } else if (bubbleHidden) {
+    return
+  }
+  bubble.style.display = 'block'
+  const w = bubble.offsetWidth
+  const h = bubble.offsetHeight
+  const desiredLeft = x - w / 2
+  const left = Math.min(Math.max(desiredLeft, BUBBLE_MARGIN), window.innerWidth - BUBBLE_MARGIN - w)
+  bubble.style.setProperty('--shift', `${left - desiredLeft}px`)
+  const spriteTop = y - 50 * currentScale
+  bubble.classList.toggle('below', spriteTop - 8 - h < BUBBLE_MARGIN)
+}
+
 function apply(update: CharacterUpdate): void {
   if (!update.visible) {
     actor.style.display = 'none'
+    hideBubble()
+    bubbleId = 0 // 캐릭터가 이 창을 떠났다가 돌아오면 남은 시간만큼 이어서 보여 준다
     return
   }
   actor.style.display = 'block'
@@ -86,6 +128,8 @@ function apply(update: CharacterUpdate): void {
     sprite.className = look
   }
   move(update.x, update.y, update.vx, update.vy)
+  if (update.speech) showBubble(update.speech, update.x, update.y)
+  else hideBubble()
 }
 
 useDefaultAppearance()
@@ -95,8 +139,8 @@ window.kakaru.onCharacterUpdate(apply)
 // 드래그 이동: 창은 커서가 캐릭터 히트 영역 위일 때만 입력을 받으므로 문서 전체의 누름이 곧 캐릭터를 누른 것이다.
 // 위치 추적은 메인이 하고, 여기서는 누름과 뗌만 알린다.
 let grabbing = false
-/** 이만큼(ms) 계속 잡혀 있으면 발버둥 모션을 시작한다 */
-const STRUGGLE_AFTER_MS = 5000
+/** 이만큼(ms) 계속 잡혀 있으면 발버둥 모션을 시작한다 (메인의 "오래 잡혔을 때" 대사와 같은 값) */
+const STRUGGLE_AFTER_MS = config.struggleAfterMs
 let struggleTimer: ReturnType<typeof setTimeout> | undefined
 
 function releaseGrab(): void {

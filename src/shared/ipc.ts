@@ -20,6 +20,8 @@ export type CharacterUpdate = {
   vy: number
   heading: Heading
   state: BehaviorState
+  /** 말풍선. null이면 없다. 렌더러는 id가 바뀔 때만 숨김 타이머를 새로 건다 */
+  speech: { id: number; text: string; remainingMs: number } | null
 }
 
 /** preload가 렌더러에 노출하는 API */
