@@ -6,10 +6,24 @@ export default defineConfig({
     build: { rollupOptions: { input: { index: resolve('src/main/index.ts') } } }
   },
   preload: {
-    build: { rollupOptions: { input: { index: resolve('src/preload/index.ts') } } }
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/preload/index.ts'),
+          settings: resolve('src/preload/settings.ts')
+        }
+      }
+    }
   },
   renderer: {
     root: resolve('src/renderer'),
-    build: { rollupOptions: { input: { index: resolve('src/renderer/index.html') } } }
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+          settings: resolve('src/renderer/settings.html')
+        }
+      }
+    }
   }
 })

@@ -3,6 +3,9 @@ import { createHitTest } from './hit-test'
 import { OverlayManager } from './overlay'
 import { startSimulation, stopSimulation } from './simulation'
 
+// 테스트·개발에서 저장 데이터와 단일 인스턴스 잠금을 실제 사용자 데이터와 분리한다
+if (process.env.KAKARU_USER_DATA) app.setPath('userData', process.env.KAKARU_USER_DATA)
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 }

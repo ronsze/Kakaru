@@ -6,7 +6,7 @@
 
 ## 사전 준비
 
-- 001과 같음(Node.js LTS, npm, macOS). 검증용 이미지는 저장소의 `src/renderer/assets/walk.png`(8프레임),
+- 001과 같음(Node.js LTS, npm, macOS). 검증용 이미지는 저장소의 `src/renderer/assets/walk.png`(4프레임),
   `idle.png`를 쓴다. 조건 위반 확인용 파일은 아래 표의 설명대로 직접 만든다.
 
 ## 실행

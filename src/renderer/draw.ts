@@ -18,6 +18,12 @@ const HALF = SIZE / 2
  */
 const GLIDE_SECONDS = 1.2
 
+/** 번들에 포함된 기본 걷기 이미지의 프레임 수 (assets/walk.png, 200×200 프레임 4장) */
+const DEFAULT_FRAMES = 4
+/** 걷기 한 바퀴의 최소 시간(ms)과 프레임당 시간(ms). 프레임이 적어도 너무 빠르게 넘기지 않는다. */
+const MIN_CYCLE_MS = 560
+const FRAME_MS = 70
+
 const actor = document.getElementById('actor') as HTMLDivElement
 const sprite = document.getElementById('sprite') as HTMLDivElement
 
@@ -25,6 +31,16 @@ const sprite = document.getElementById('sprite') as HTMLDivElement
 ;(document.getElementById('idle') as HTMLImageElement).src = idleUrl
 
 let lastLook = ''
+
+/** 걷기 이미지의 프레임 수에 맞춰 CSS 변수(steps 수, 이동 거리, 한 바퀴 시간)를 정한다 */
+function setFrames(frames: number): void {
+  const root = document.documentElement.style
+  root.setProperty('--frames', String(frames))
+  root.setProperty('--strip', `${frames * SIZE}px`)
+  root.setProperty('--cycle', `${Math.max(MIN_CYCLE_MS, frames * FRAME_MS)}ms`)
+}
+
+setFrames(DEFAULT_FRAMES)
 
 function move(x: number, y: number, vx: number, vy: number): void {
   actor.style.transition = 'none'

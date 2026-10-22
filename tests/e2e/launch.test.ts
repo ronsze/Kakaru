@@ -1,9 +1,15 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { _electron as electron, expect, test } from '@playwright/test'
 
 type Sample = { visible: boolean; x: number; y: number; vx: number; vy: number; state: string }
 
 test('앱 기동 후 5초 안에 캐릭터가 이동을 시작한다 (SC-001)', async () => {
-  const app = await electron.launch({ args: ['.'] })
+  const app = await electron.launch({
+    args: ['.'],
+    env: { ...process.env, KAKARU_USER_DATA: mkdtempSync(join(tmpdir(), 'kakaru-e2e-')) }
+  })
   try {
     await app.firstWindow()
     // 오버레이 창이 모두 열릴 때까지 잠시 기다린다

@@ -13,7 +13,7 @@
 type Appearance = {
   walkUrl: string | null // data: URL. null이면 번들에 포함된 기본 걷기 이미지
   idleUrl: string | null // data: URL. null이면 번들에 포함된 기본 정지 이미지
-  frames: number // 걷기 프레임 수 (기본 캐릭터는 8)
+  frames: number // 걷기 프레임 수 (기본 캐릭터는 4)
 }
 ```
 

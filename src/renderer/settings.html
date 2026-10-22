@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:"
+    />
+    <title>캐릭터 설정</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+        color: #222;
+        background: #fafafa;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>캐릭터 설정</h1>
+    <div id="app"></div>
+    <script type="module" src="./settings.ts"></script>
+  </body>
+</html>
