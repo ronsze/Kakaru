@@ -242,8 +242,8 @@ describe('CharacterService.zoom (확대·축소)', () => {
   it('확대·축소 여러 번 후에도 크기가 한 단계씩 정확히 변한다 (오차 누적 없음)', () => {
     const { service } = setup()
     for (let i = 0; i < 7; i++) service.zoom(1)
-    expect(service.zoomState().scale).toBe(1.7)
+    expect(service.zoomState().scale).toBe(2.4)
     for (let i = 0; i < 3; i++) service.zoom(-1)
-    expect(service.zoomState().scale).toBe(1.4)
+    expect(service.zoomState().scale).toBe(1.8)
   })
 })
