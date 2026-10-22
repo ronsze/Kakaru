@@ -101,20 +101,20 @@ describe('remove', () => {
 describe('readAppearance', () => {
   it('기본 캐릭터이면 이미지 URL은 null이고 프레임 수는 기본값이다', () => {
     const store = create()
-    expect(store.readAppearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+    expect(store.readAppearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames, scale: 1 })
   })
 
   it('사용자 캐릭터이면 이미지의 data URL과 프레임 수를 돌려준다', () => {
     const store = create()
     store.setActive('aaaa1111')
-    expect(store.readAppearance()).toEqual({ walkUrl: dataUrl(walk), idleUrl: dataUrl(idle), frames: 6 })
+    expect(store.readAppearance()).toEqual({ walkUrl: dataUrl(walk), idleUrl: dataUrl(idle), frames: 6, scale: 1 })
   })
 
   it('활성 캐릭터의 이미지 파일이 없으면 기본 외형으로 대체하고 알림을 남긴다 (FR-015)', () => {
     const store = create()
     store.setActive('aaaa1111')
     rmSync(join(root, 'characters', 'aaaa1111', 'walk.png'))
-    expect(store.readAppearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+    expect(store.readAppearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames, scale: 1 })
     expect(store.getActiveId()).toBeNull()
     expect(store.takeNotice()).toContain('aaaa1111') // meta()의 이름 기본값은 id
   })

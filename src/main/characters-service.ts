@@ -10,6 +10,7 @@ import type {
   SimpleResult,
   ValidationResult
 } from '../shared/ipc'
+import { config } from '../shared/config'
 import type { CharacterStore } from './characters-store'
 
 /** 기본 캐릭터 이미지의 프레임 한 변 (번들된 assets/walk.png, idle.png) */
@@ -23,6 +24,8 @@ export type SampleCharacter = {
   frameSize: number
   dir: string
 }
+
+export type ZoomState = { scale: number; canZoomIn: boolean; canZoomOut: boolean }
 
 export type CharacterServiceOptions = {
   now?: () => number
@@ -169,5 +172,17 @@ export class CharacterService {
       if (this.store.seedSample(sample.key, meta, walk, idle)) installed++
     }
     return installed
+  }
+
+  /** 현재 크기와 더 확대·축소할 수 있는지 (메뉴 항목의 활성 여부에 쓴다) */
+  zoomState(): ZoomState {
+    const scale = this.store.getScale()
+    return { scale, canZoomIn: scale < config.scale.max, canZoomOut: scale > config.scale.min }
+  }
+
+  /** 캐릭터를 한 단계 확대(+1) 또는 축소(-1)한다. 범위를 넘으면 최대·최소에서 멈춘다. */
+  zoom(direction: 1 | -1): ZoomState {
+    this.store.setScale(this.store.getScale() + direction * config.scale.step)
+    return this.zoomState()
   }
 }

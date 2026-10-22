@@ -38,6 +38,8 @@ export type Settings = {
   characters: CharacterSet[]
   /** 처음 실행 때 등록해 둔 샘플 캐릭터 키. 삭제해도 다시 넣지 않기 위해 기록한다 */
   seeded?: string[]
+  /** 캐릭터 크기 배율. 없으면 기본 크기 */
+  scale?: number
 }
 
 /** 오버레이에 적용되는 활성 캐릭터의 모습 (저장하지 않는 파생 값) */
@@ -48,6 +50,8 @@ export type Appearance = {
   idleUrl: string | null
   /** 걷기 프레임 수 */
   frames: number
+  /** 캐릭터 크기 배율 (기본 1). 확대·축소 메뉴로 바뀐다 */
+  scale: number
 }
 
 export type ValidationErrorCode =

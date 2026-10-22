@@ -32,17 +32,20 @@ const idleImg = document.getElementById('idle') as HTMLImageElement
 
 /** 활성 캐릭터의 모습을 반영한다. 이미지만 바뀌고 위치·방향·이동 상태는 그대로다 (FR-011). */
 let usingDefault = true
+let currentScale = 1
 
 function applyAppearance(appearance: Appearance): void {
   usingDefault = appearance.walkUrl === null && appearance.idleUrl === null
   setFrames(appearance.frames)
+  currentScale = appearance.scale
+  document.documentElement.style.setProperty('--scale', String(appearance.scale))
   walkImg.src = appearance.walkUrl ?? walkUrl
   idleImg.src = appearance.idleUrl ?? idleUrl
 }
 
 /** 사용자 이미지를 불러오지 못하면 기본 캐릭터로 되돌린다 (FR-015) */
 function useDefaultAppearance(): void {
-  applyAppearance({ walkUrl: null, idleUrl: null, frames: DEFAULT_FRAMES })
+  applyAppearance({ walkUrl: null, idleUrl: null, frames: DEFAULT_FRAMES, scale: currentScale })
 }
 
 for (const img of [walkImg, idleImg]) {

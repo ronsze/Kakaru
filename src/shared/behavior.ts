@@ -42,6 +42,11 @@ export class MovementEngine {
     return this.character
   }
 
+  /** 캐릭터 크기에 맞춰 클릭을 받는 영역(히트 영역) 반지름을 바꾼다 */
+  setHitRadius(radius: number): void {
+    this.character.hitRadius = radius
+  }
+
   setWalkableArea(area: WalkableArea): void {
     this.area = area
     const c = this.character

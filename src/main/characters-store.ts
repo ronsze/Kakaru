@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { config } from '../shared/config'
 import {
   ID_PATTERN,
   LIMITS,
@@ -9,6 +10,12 @@ import {
 } from '../shared/characters'
 
 const SETTINGS_FILE = 'settings.json'
+
+/** 배율을 최소~최대 범위로 맞추고 소수 둘째 자리로 반올림한다 */
+export function normalizeScale(value: number): number {
+  const clamped = Math.min(config.scale.max, Math.max(config.scale.min, value))
+  return Math.round(clamped * 100) / 100
+}
 
 function isCharacterSet(v: unknown): v is CharacterSet {
   if (typeof v !== 'object' || v === null) return false
@@ -35,7 +42,8 @@ function isSettings(v: unknown): v is Settings {
     (s.activeId === null || typeof s.activeId === 'string') &&
     Array.isArray(s.characters) &&
     s.characters.every(isCharacterSet) &&
-    (s.seeded === undefined || (Array.isArray(s.seeded) && s.seeded.every((k) => typeof k === 'string')))
+    (s.seeded === undefined || (Array.isArray(s.seeded) && s.seeded.every((k) => typeof k === 'string'))) &&
+    (s.scale === undefined || (typeof s.scale === 'number' && Number.isFinite(s.scale)))
   )
 }
 
@@ -79,6 +87,7 @@ export class CharacterStore {
       return
     }
     this.settings = parsed
+    if (this.settings.scale !== undefined) this.settings.scale = normalizeScale(this.settings.scale)
     this.ensureActiveReadable()
   }
 
@@ -149,6 +158,24 @@ export class CharacterStore {
     }
   }
 
+  /** 캐릭터 크기 배율 (확대·축소) */
+  getScale(): number {
+    return this.settings.scale ?? config.scale.default
+  }
+
+  /** 배율을 범위 안으로 맞춰 저장한다 */
+  setScale(scale: number): void {
+    if (typeof scale !== 'number' || !Number.isFinite(scale)) throw new Error('크기 값이 올바르지 않습니다.')
+    const previous = this.settings.scale
+    this.settings.scale = normalizeScale(scale)
+    try {
+      this.save()
+    } catch (error) {
+      this.settings.scale = previous
+      throw error
+    }
+  }
+
   /** 활성 캐릭터를 바꾼다. null이면 기본 캐릭터로 되돌린다. */
   setActive(id: string | null): void {
     if (id !== null) {
@@ -203,7 +230,8 @@ export class CharacterStore {
    * 기본 모습(URL이 null)을 돌려준다. 읽을 수 없는 경우 활성을 기본으로 되돌리고 알림을 남긴다 (FR-015).
    */
   readAppearance(): Appearance {
-    const fallback: Appearance = { walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames }
+    const scale = this.getScale()
+    const fallback: Appearance = { walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames, scale }
     const id = this.settings.activeId
     if (id === null) return fallback
     const character = this.settings.characters.find((c) => c.id === id)
@@ -222,7 +250,8 @@ export class CharacterStore {
     return {
       walkUrl: `data:image/png;base64,${walk.toString('base64')}`,
       idleUrl: `data:image/png;base64,${idle.toString('base64')}`,
-      frames: character.frames
+      frames: character.frames,
+      scale
     }
   }
 

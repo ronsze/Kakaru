@@ -117,6 +117,11 @@ export function setUserControlled(active: boolean): void {
   broadcast(engine.getCharacter(), true)
 }
 
+/** 캐릭터 크기 배율을 히트 영역에 반영한다 (확대·축소) */
+export function setCharacterScale(scale: number): void {
+  engine.setHitRadius(config.hitRadius * scale)
+}
+
 /** 히트 테스트가 쓰는 현재 캐릭터·이동 가능 영역 */
 export function getCharacter(): SimulationSnapshot {
   return { character: engine.getCharacter(), area, displayIds }

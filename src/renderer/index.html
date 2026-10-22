@@ -20,6 +20,7 @@
         --frames: 8;
         --strip: 800px;
         --cycle: 560ms;
+        --scale: 1;
       }
       /* 캐릭터 요소만 transform으로 옮긴다. 위치 이동과 걷기 프레임 전환 모두 CSS가 처리해
          프레임마다 JS를 돌리지 않는다. */
@@ -38,8 +39,12 @@
         height: 100px;
         overflow: hidden;
       }
+      /* 확대·축소: 캐릭터 중심을 기준으로 배율을 적용한다. 왼쪽을 볼 때는 좌우도 반전한다. */
+      #sprite {
+        transform: scale(var(--scale));
+      }
       #sprite.facing-left {
-        transform: scaleX(-1);
+        transform: scale(calc(-1 * var(--scale)), var(--scale));
       }
       #sprite img {
         position: absolute;

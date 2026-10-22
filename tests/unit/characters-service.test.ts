@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { CharacterService } from '../../src/main/characters-service'
 import { CharacterStore } from '../../src/main/characters-store'
 import { ID_PATTERN, LIMITS, type ImageInspector } from '../../src/shared/characters'
+import { config } from '../../src/shared/config'
 import type { RegisterInput } from '../../src/shared/ipc'
 import { makePng } from './png-fixture'
 
@@ -123,7 +124,7 @@ describe('CharacterService.apply / delete', () => {
     service.apply(r.id)
     expect(service.apply(null)).toEqual({ ok: true })
     expect(service.list().activeId).toBeNull()
-    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames, scale: 1 })
   })
 
   it('등록되지 않은 id를 적용하면 실패 메시지를 돌려준다', () => {
@@ -156,7 +157,7 @@ describe('CharacterService.apply / delete', () => {
     if (!r.ok) throw new Error('등록 실패')
     service.apply(r.id)
     rmSync(join(store.characterDir(r.id), 'walk.png'))
-    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames, scale: 1 })
     const list = service.list()
     expect(list.notice).toBeTruthy()
     expect(list.activeId).toBeNull()
@@ -199,5 +200,50 @@ describe('CharacterService.installSamples', () => {
     const { service } = setup()
     expect(service.installSamples([sample(join(root, 'nothing'))])).toBe(0)
     expect(service.list().characters).toHaveLength(1)
+  })
+})
+
+describe('CharacterService.zoom (확대·축소)', () => {
+  it('확대하면 한 단계(step)만큼 커지고 appearance에 반영된다', () => {
+    const { service } = setup()
+    const r = service.zoom(1)
+    expect(r.scale).toBe(Math.round((config.scale.default + config.scale.step) * 100) / 100)
+    expect(service.appearance().scale).toBe(r.scale)
+  })
+
+  it('축소하면 한 단계만큼 작아진다', () => {
+    const { service } = setup()
+    expect(service.zoom(-1).scale).toBe(Math.round((config.scale.default - config.scale.step) * 100) / 100)
+  })
+
+  it('최대에서는 더 커지지 않고 canZoomIn이 false다', () => {
+    const { service } = setup()
+    let last = service.zoom(1)
+    for (let i = 0; i < 100; i++) last = service.zoom(1)
+    expect(last.scale).toBe(config.scale.max)
+    expect(last.canZoomIn).toBe(false)
+    expect(last.canZoomOut).toBe(true)
+  })
+
+  it('최소에서는 더 작아지지 않고 canZoomOut이 false다', () => {
+    const { service } = setup()
+    let last = service.zoom(-1)
+    for (let i = 0; i < 100; i++) last = service.zoom(-1)
+    expect(last.scale).toBe(config.scale.min)
+    expect(last.canZoomOut).toBe(false)
+    expect(last.canZoomIn).toBe(true)
+  })
+
+  it('zoomState는 현재 크기에서 확대·축소가 가능한지 알려 준다', () => {
+    const { service } = setup()
+    expect(service.zoomState()).toEqual({ scale: config.scale.default, canZoomIn: true, canZoomOut: true })
+  })
+
+  it('확대·축소 여러 번 후에도 크기가 한 단계씩 정확히 변한다 (오차 누적 없음)', () => {
+    const { service } = setup()
+    for (let i = 0; i < 7; i++) service.zoom(1)
+    expect(service.zoomState().scale).toBe(1.7)
+    for (let i = 0; i < 3; i++) service.zoom(-1)
+    expect(service.zoomState().scale).toBe(1.4)
   })
 })

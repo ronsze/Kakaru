@@ -9,7 +9,7 @@ import { attachContextMenu } from './context-menu'
 import { createHitTest } from './hit-test'
 import { OverlayManager } from './overlay'
 import { openSettingsWindow } from './settings-window'
-import { setUserControlled, startSimulation, stopSimulation } from './simulation'
+import { setCharacterScale, setUserControlled, startSimulation, stopSimulation } from './simulation'
 
 /** 처음 실행 때 등록된 캐릭터로 넣어 두는 샘플 (기본 캐릭터는 폴리곤 고양이) */
 const SAMPLES: SampleCharacter[] = [
@@ -44,23 +44,35 @@ app.whenReady().then(() => {
   let appearance = characters.appearance()
   const sendAppearance = (win: BrowserWindow) => win.webContents.send(CHANNEL_APPEARANCE, appearance)
 
-  const menu = new ContextMenuController({ setUserControlled, openSettings: openSettingsWindow })
+  /** 활성 캐릭터·크기가 바뀌었을 수 있을 때 오버레이에 새 모습을 보내고 히트 영역을 맞춘다 */
+  const refreshAppearance = () => {
+    appearance = characters.appearance()
+    setCharacterScale(appearance.scale)
+    for (const [, win] of overlays.all()) if (!win.isDestroyed()) sendAppearance(win)
+  }
+
+  const menu = new ContextMenuController({
+    setUserControlled,
+    openSettings: openSettingsWindow,
+    zoom: (direction) => {
+      characters.zoom(direction)
+      refreshAppearance()
+    },
+    zoomState: () => characters.zoomState(),
+    quit: () => app.quit()
+  })
   const overlays = new OverlayManager({
     onCreate: (win) => {
       attachContextMenu(win, menu)
       win.webContents.on('did-finish-load', () => sendAppearance(win))
     }
   })
-  registerCharactersIpc(characters, {
-    onAppearanceChanged: () => {
-      appearance = characters.appearance()
-      for (const [, win] of overlays.all()) if (!win.isDestroyed()) sendAppearance(win)
-    }
-  })
+  registerCharactersIpc(characters, { onAppearanceChanged: refreshAppearance })
   overlays.sync()
   // visibleOnFullScreen 설정이 Dock 아이콘을 다시 보이게 할 수 있어 창 생성 뒤 한 번 더 숨긴다
   if (process.platform === 'darwin') app.dock?.hide()
   startSimulation(overlays, createHitTest(overlays))
+  setCharacterScale(appearance.scale)
 
   // 개발·테스트용: 시작하자마자 설정 창을 연다
   if (process.argv.includes('--open-settings')) openSettingsWindow()

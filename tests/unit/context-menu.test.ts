@@ -5,7 +5,10 @@ function setup() {
   const calls: string[] = []
   const controller = new ContextMenuController({
     setUserControlled: (active) => calls.push(`control:${active}`),
-    openSettings: () => calls.push('settings')
+    openSettings: () => calls.push('settings'),
+    zoom: () => undefined,
+    zoomState: () => ({ canZoomIn: true, canZoomOut: true }),
+    quit: () => undefined
   })
   let onClosed: (() => void) | undefined
   const popup = vi.fn((closed: () => void) => {
@@ -66,5 +69,37 @@ describe('ContextMenuController', () => {
     const ok = vi.fn()
     controller.handleContextMenu(ok)
     expect(ok).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('ContextMenuController 확대·축소·종료', () => {
+  function setupActions() {
+    const calls: string[] = []
+    const controller = new ContextMenuController({
+      setUserControlled: () => undefined,
+      openSettings: () => calls.push('settings'),
+      zoom: (direction) => calls.push(`zoom:${direction}`),
+      zoomState: () => ({ canZoomIn: true, canZoomOut: false }),
+      quit: () => calls.push('quit')
+    })
+    return { controller, calls }
+  }
+
+  it('"확대"는 +1, "축소"는 -1 방향으로 크기 변경을 요청한다', () => {
+    const { controller, calls } = setupActions()
+    controller.selectZoomIn()
+    controller.selectZoomOut()
+    expect(calls).toEqual(['zoom:1', 'zoom:-1'])
+  })
+
+  it('"종료"를 선택하면 앱 종료를 요청한다', () => {
+    const { controller, calls } = setupActions()
+    controller.selectQuit()
+    expect(calls).toEqual(['quit'])
+  })
+
+  it('메뉴를 열 때의 확대·축소 가능 여부를 알려 준다', () => {
+    const { controller } = setupActions()
+    expect(controller.zoomState()).toEqual({ canZoomIn: true, canZoomOut: false })
   })
 })

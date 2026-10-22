@@ -229,6 +229,40 @@ test.describe('캐릭터 선택·관리 (US3)', () => {
     await expect(page.locator('#list li').first()).toContainText('기본')
   })
 
+  test('오버레이는 기본 크기(배율 1)로 시작한다', async () => {
+    const pages = await overlayPages(app)
+    expect(pages.length).toBeGreaterThan(0)
+    for (const p of pages) {
+      const scale = await p.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--scale').trim()
+      )
+      expect(scale).toBe('1')
+    }
+  })
+
+  test('저장된 배율로 시작하면 오버레이에 그 배율이 적용된다', async () => {
+    await app.close()
+    const { writeFileSync, mkdirSync } = await import('node:fs')
+    mkdirSync(userData, { recursive: true })
+    writeFileSync(
+      join(userData, 'settings.json'),
+      JSON.stringify({ version: 1, activeId: null, characters: [], seeded: ['bmm'], scale: 1.7 })
+    )
+    app = await launch(userData)
+    page = await settingsPage(app)
+    await expect
+      .poll(async () => {
+        const pages = await overlayPages(app)
+        const values = await Promise.all(
+          pages.map((p) =>
+            p.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--scale').trim())
+          )
+        )
+        return values.length > 0 && values.every((v) => v === '1.7')
+      })
+      .toBe(true)
+  })
+
   test('기본 캐릭터 항목에는 삭제 버튼이 없다', async () => {
     await expect(page.locator('#list li').first().locator('.btn-delete')).toHaveCount(0)
   })
