@@ -4,14 +4,17 @@ import { join } from 'node:path'
 import { LIMITS, validateRegistration, type Appearance, type ImageInspector } from '../shared/characters'
 import type {
   CharacterSummary,
+  GetLinesResult,
   ListResult,
   RegisterInput,
   RegisterResult,
+  RestoreLinesResult,
+  SaveLinesResult,
   SimpleResult,
   ValidationResult
 } from '../shared/ipc'
 import { config } from '../shared/config'
-import type { Lines } from '../shared/dialogue'
+import { DEFAULT_LINES, DIALOGUE_CATEGORIES, emptyLines, sanitizeLines, validateLinesInput, type Lines } from '../shared/dialogue'
 import type { CharacterStore } from './characters-store'
 
 /** 기본 캐릭터 이미지의 프레임 한 변 (번들된 assets/walk.png, idle.png) */
@@ -48,6 +51,18 @@ function readOptional(path: string): Buffer | null {
   }
 }
 
+/** IPC로 받은 값이 분류별 문자열 배열 모양인지 확인한다. 알 수 없는 분류 키나 문자열이 아닌 값은 거부한다 */
+function parseLinesInput(value: unknown): Record<string, string[]> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  const known = new Set<string>(DIALOGUE_CATEGORIES)
+  const out: Record<string, string[]> = {}
+  for (const [key, list] of Object.entries(value)) {
+    if (!known.has(key) || !Array.isArray(list) || !list.every((x) => typeof x === 'string')) return null
+    out[key] = list
+  }
+  return out
+}
+
 function toDataUrl(bytes: Buffer): string {
   return `data:image/png;base64,${bytes.toString('base64')}`
 }
@@ -59,6 +74,9 @@ function toDataUrl(bytes: Buffer): string {
 export class CharacterService {
   private readonly now: () => number
   private readonly makeId: () => string
+  /** 설치·백필에 넘어온 샘플 목록. 대사를 처음 문장으로 되돌릴 때 원본을 찾는 데 쓴다 */
+  private samples: readonly SampleCharacter[] = []
+
   constructor(
     private readonly store: CharacterStore,
     private readonly inspector: ImageInspector,
@@ -160,6 +178,7 @@ export class CharacterService {
    * 활성 캐릭터는 바꾸지 않으므로 사용자가 선택하기 전에는 기본 캐릭터를 쓴다.
    */
   installSamples(samples: readonly SampleCharacter[]): number {
+    this.samples = samples
     let installed = 0
     for (const sample of samples) {
       let walk: Buffer
@@ -191,6 +210,7 @@ export class CharacterService {
    * 캐릭터에 lines.json이 없을 때만 복사하며, 이미 있으면 덮어쓰지 않는다. (research R6)
    */
   backfillSampleLines(samples: readonly SampleCharacter[]): number {
+    this.samples = samples
     let filled = 0
     for (const sample of samples) {
       if (!this.store.isSeeded(sample.key)) continue
@@ -207,6 +227,73 @@ export class CharacterService {
   /** 활성 캐릭터의 대화셋 */
   lines(): Lines {
     return this.store.readLines()
+  }
+
+  /** id의 샘플 정의. 설치 기록이 있고 이름이 같은 등록 캐릭터만 샘플로 본다 */
+  private sampleOf(id: string): SampleCharacter | undefined {
+    const character = this.store.list().find((c) => c.id === id)
+    if (!character) return undefined
+    return this.samples.find((s) => this.store.isSeeded(s.key) && s.name === character.name)
+  }
+
+  private exists(id: string | null): boolean {
+    return id === null || this.store.list().some((c) => c.id === id)
+  }
+
+  /** 처음 문장(기본 캐릭터·샘플). 등록 캐릭터는 빈 목록이다 */
+  private initialLines(id: string | null): Lines {
+    if (id === null) return DEFAULT_LINES
+    const sample = this.sampleOf(id)
+    const bytes = sample ? readOptional(join(sample.dir, 'lines.json')) : null
+    if (!bytes) return emptyLines()
+    try {
+      return sanitizeLines(JSON.parse(bytes.toString('utf8')))
+    } catch {
+      return emptyLines()
+    }
+  }
+
+  /** 대사 편집 화면에 보여 줄 대화셋과 복원 종류 */
+  getLines(id: string | null): GetLinesResult {
+    if (!this.exists(id)) return { ok: false, message: '등록되지 않은 캐릭터입니다.' }
+    const lines = this.store.readLinesOf(id)
+    const restorable = id === null || this.sampleOf(id) !== undefined
+    const initial = this.initialLines(id)
+    const modified = JSON.stringify(lines) !== JSON.stringify(initial)
+    return { ok: true, view: { lines, restore: restorable ? 'default' : 'clear', modified } }
+  }
+
+  /** 편집한 대화셋을 검증하고 저장한다. 렌더러를 신뢰하지 않고 메인에서 다시 검증한다 */
+  saveLines(id: string | null, input: unknown): SaveLinesResult {
+    if (!this.exists(id)) return { ok: false, message: '등록되지 않은 캐릭터입니다. 삭제되었을 수 있습니다.' }
+    const parsed = parseLinesInput(input)
+    if (!parsed) return { ok: false, message: '대사 입력 형식이 올바르지 않습니다.' }
+    const result = validateLinesInput(parsed)
+    if (!result.ok) return { ok: false, issues: result.issues }
+    try {
+      this.store.writeLines(id, result.lines)
+    } catch (error) {
+      return { ok: false, message: `저장하지 못했습니다: ${error instanceof Error ? error.message : String(error)}` }
+    }
+    return { ok: true, lines: result.lines, dropped: result.dropped, merged: result.merged }
+  }
+
+  /** 기본 캐릭터·샘플은 처음 문장으로 되돌리고, 등록 캐릭터는 모두 비운다 */
+  restoreLines(id: string | null): RestoreLinesResult {
+    if (!this.exists(id)) return { ok: false, message: '등록되지 않은 캐릭터입니다.' }
+    try {
+      if (id === null) {
+        this.store.resetDefaultLines()
+      } else {
+        const sample = this.sampleOf(id)
+        const original = sample ? readOptional(join(sample.dir, 'lines.json')) : null
+        if (original) this.store.writeLinesFile(id, original)
+        else this.store.writeLines(id, emptyLines())
+      }
+    } catch (error) {
+      return { ok: false, message: `되돌리지 못했습니다: ${error instanceof Error ? error.message : String(error)}` }
+    }
+    return { ok: true, lines: this.store.readLinesOf(id) }
   }
 
   /** 현재 크기와 더 확대·축소할 수 있는지 (메뉴 항목의 활성 여부에 쓴다) */

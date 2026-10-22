@@ -1,4 +1,5 @@
 import type { Appearance, ValidationError } from './characters'
+import type { Category, Lines, LinesIssue } from './dialogue'
 import type { BehaviorState, Heading } from './types'
 
 export const CHANNEL_CHARACTER_UPDATE = 'character:update'
@@ -70,6 +71,26 @@ export type RegisterResult = { ok: true; id: string } | { ok: false; errors: Val
 
 export type SimpleResult = { ok: true } | { ok: false; message: string }
 
+/** 대사 편집 화면에 보여 줄 한 캐릭터의 대화셋 */
+export type LinesView = {
+  lines: Lines
+  /** 'default': 처음 문장으로 되돌리기(기본·샘플), 'clear': 모두 비우기(등록 캐릭터) */
+  restore: 'default' | 'clear'
+  /** 되돌리기·비우기 버튼이 의미 있는지(처음 상태와 다르거나 비어 있지 않은지) */
+  modified: boolean
+}
+
+export type GetLinesResult = { ok: true; view: LinesView } | { ok: false; message: string }
+
+export type SaveLinesResult =
+  | { ok: true; lines: Lines; dropped: number; merged: number }
+  | { ok: false; issues: LinesIssue[] }
+  | { ok: false; message: string }
+
+export type RestoreLinesResult = { ok: true; lines: Lines } | { ok: false; message: string }
+
+export type { Category, Lines, LinesIssue }
+
 /** preload가 설정 창에 노출하는 API */
 export type KakaruSettingsApi = {
   list(): Promise<ListResult>
@@ -78,5 +99,9 @@ export type KakaruSettingsApi = {
   /** id가 null이면 기본 캐릭터로 되돌린다 */
   apply(id: string | null): Promise<SimpleResult>
   delete(id: string): Promise<SimpleResult>
+  /** id가 null이면 기본 캐릭터 */
+  getLines(id: string | null): Promise<GetLinesResult>
+  saveLines(id: string | null, input: Record<Category, string[]>): Promise<SaveLinesResult>
+  restoreLines(id: string | null): Promise<RestoreLinesResult>
   onChanged(callback: () => void): void
 }

@@ -11,6 +11,12 @@ import {
 } from '../shared/characters'
 
 const SETTINGS_FILE = 'settings.json'
+/** 기본 캐릭터의 편집한 대화셋 (캐릭터 폴더가 없어 루트에 둔다) */
+const DEFAULT_LINES_FILE = 'default-lines.json'
+
+function isLinesFile(raw: unknown): boolean {
+  return typeof raw === 'object' && raw !== null && (raw as { version?: unknown }).version === 1
+}
 
 /** 배율을 최소~최대 범위로 맞추고 소수 둘째 자리로 반올림한다 */
 export function normalizeScale(value: number): number {
@@ -217,18 +223,63 @@ export class CharacterStore {
     }
   }
 
-  /**
-   * 활성 캐릭터의 대화셋 (contracts/lines-file.md). 기본 캐릭터는 내장 문장이고,
-   * 등록한 캐릭터는 lines.json이 없거나 깨졌으면 모두 빈 목록이다(다른 문장으로 대체하지 않는다).
-   */
+  /** 활성 캐릭터의 대화셋 */
   readLines(): Lines {
-    const id = this.settings.activeId
-    if (id === null) return DEFAULT_LINES
+    return this.readLinesOf(this.settings.activeId)
+  }
+
+  /**
+   * 캐릭터의 대화셋 (contracts/lines-file.md). id가 null이면 기본 캐릭터로, 사용자가 저장한 편집본이
+   * 유효하면 그것을, 없거나 깨졌으면 내장 문장을 쓴다. 등록한 캐릭터는 lines.json이 없거나 깨졌으면 모두
+   * 빈 목록이다(다른 문장으로 대체하지 않는다).
+   */
+  readLinesOf(id: string | null): Lines {
+    if (id === null) {
+      try {
+        const raw: unknown = JSON.parse(readFileSync(join(this.root, DEFAULT_LINES_FILE), 'utf8'))
+        if (isLinesFile(raw)) return sanitizeLines(raw)
+      } catch {
+        /* 없거나 깨졌으면 내장 문장 */
+      }
+      return DEFAULT_LINES
+    }
     try {
       return sanitizeLines(JSON.parse(readFileSync(join(this.characterDir(id), 'lines.json'), 'utf8')))
     } catch {
       return emptyLines()
     }
+  }
+
+  /**
+   * 편집한 대화셋을 저장한다. tmp에 쓴 뒤 rename하므로 실패해도 기존 파일은 그대로다.
+   * id가 null이면 기본 캐릭터의 편집본(default-lines.json)이다. 등록되지 않은 id는 거부한다.
+   */
+  writeLines(id: string | null, lines: Lines): void {
+    let target: string
+    if (id === null) {
+      target = join(this.root, DEFAULT_LINES_FILE)
+    } else {
+      if (!this.settings.characters.some((c) => c.id === id)) throw new Error(`등록되지 않은 캐릭터입니다: ${id}`)
+      target = join(this.characterDir(id), 'lines.json')
+    }
+    mkdirSync(join(target, '..'), { recursive: true })
+    const tmp = `${target}.tmp`
+    try {
+      writeFileSync(tmp, JSON.stringify({ version: 1, lines }, null, 2))
+      renameSync(tmp, target)
+    } catch (error) {
+      rmSync(tmp, { force: true })
+      throw error
+    }
+  }
+
+  hasDefaultLinesOverride(): boolean {
+    return existsSync(join(this.root, DEFAULT_LINES_FILE))
+  }
+
+  /** 기본 캐릭터의 편집본을 지워 내장 문장으로 되돌린다 */
+  resetDefaultLines(): void {
+    rmSync(join(this.root, DEFAULT_LINES_FILE), { force: true })
   }
 
   hasLinesFile(id: string): boolean {

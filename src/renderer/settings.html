@@ -196,15 +196,94 @@
           transform: translateX(calc(-1 * var(--strip)));
         }
       }
+      /* 대사 편집 패널 */
+      #lines-panel textarea {
+        width: 100%;
+        min-height: 92px;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font: inherit;
+        line-height: 1.45;
+        resize: vertical;
+      }
+      #lines-panel textarea.invalid {
+        border-color: #b00020;
+      }
+      .lines-cat {
+        margin-bottom: 10px;
+      }
+      .cat-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .cat-head label {
+        margin: 0 0 4px;
+      }
+      .cat-count {
+        font-size: 12px;
+        color: #777;
+      }
+      .cat-count.over {
+        color: #b00020;
+        font-weight: 600;
+      }
+      .cat-errors {
+        margin: 4px 0 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: #b00020;
+      }
+      .cat-errors:empty {
+        display: none;
+      }
+      .lines-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .unsaved-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: #fff4e5;
+        border: 1px solid #f0c987;
+        font-size: 13px;
+      }
+      .unsaved-bar span {
+        flex: 1;
+      }
+      .gone {
+        margin: 0 0 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: #fdecea;
+        border: 1px solid #f5b5ae;
+        color: #b00020;
+        font-size: 13px;
+      }
       #status {
         margin-top: 8px;
         font-size: 13px;
       }
-      #status.ok {
+      #status.ok,
+      #lines-status.ok {
         color: #1b7f3b;
       }
-      #status.fail {
+      #status.fail,
+      #lines-status.fail {
         color: #b00020;
+      }
+      #lines-status {
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      [hidden] {
+        display: none !important;
       }
       .hint {
         margin: 8px 0 0;
@@ -221,7 +300,7 @@
         <h2>등록된 캐릭터</h2>
         <ul id="list"></ul>
       </section>
-      <section>
+      <section id="register-section">
         <h2>새 캐릭터 등록</h2>
         <label for="name">이름</label>
         <input id="name" type="text" maxlength="60" autocomplete="off" />
@@ -252,6 +331,38 @@
         <p class="hint" id="hint">걷기 이미지와 정지 이미지를 모두 선택하면 미리보기와 검사 결과가 나타납니다.</p>
         <button id="register" class="primary" type="button" disabled>등록</button>
         <div id="status" role="status"></div>
+      </section>
+      <section id="lines-panel" hidden>
+        <h2 id="lines-title">대사 편집</h2>
+        <div id="lines-unsaved" class="unsaved-bar" role="alert" hidden>
+          <span>저장하지 않은 변경이 있습니다.</span>
+          <button id="unsaved-save" class="primary" type="button">저장</button>
+          <button id="unsaved-discard" type="button">버리기</button>
+          <button id="unsaved-keep" type="button">계속 편집</button>
+        </div>
+        <div id="lines-gone" class="gone" role="alert" hidden>삭제된 캐릭터입니다. 더 이상 저장할 수 없습니다.</div>
+        <div class="lines-cat">
+          <div class="cat-head"><label for="lines-normal">평소</label><span class="cat-count" id="count-normal"></span></div>
+          <textarea id="lines-normal" spellcheck="false"></textarea>
+          <ul class="cat-errors" id="errors-normal"></ul>
+        </div>
+        <div class="lines-cat">
+          <div class="cat-head"><label for="lines-grabbed">잡혔을 때</label><span class="cat-count" id="count-grabbed"></span></div>
+          <textarea id="lines-grabbed" spellcheck="false"></textarea>
+          <ul class="cat-errors" id="errors-grabbed"></ul>
+        </div>
+        <div class="lines-cat">
+          <div class="cat-head"><label for="lines-struggling">오래 잡혔을 때</label><span class="cat-count" id="count-struggling"></span></div>
+          <textarea id="lines-struggling" spellcheck="false"></textarea>
+          <ul class="cat-errors" id="errors-struggling"></ul>
+        </div>
+        <p class="hint">한 줄에 한 문장씩 적습니다. 문장은 1~60자, 분류당 최대 50개이며 빈 줄과 같은 분류의 중복 문장은 저장할 때 정리됩니다.</p>
+        <div class="lines-actions">
+          <button id="lines-save" class="primary" type="button" disabled>저장</button>
+          <button id="lines-restore" type="button"></button>
+          <button id="lines-close" type="button">닫기</button>
+        </div>
+        <div id="lines-status" role="status"></div>
       </section>
     </div>
     <script type="module" src="./settings.ts"></script>

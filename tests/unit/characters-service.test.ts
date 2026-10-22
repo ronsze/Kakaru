@@ -293,3 +293,93 @@ describe('CharacterService.zoom (확대·축소)', () => {
     expect(service.zoomState().scale).toBe(1.8)
   })
 })
+
+describe('CharacterService 대사 편집 (006)', () => {
+  const sampleDir = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'kakaru-sample-'))
+    writeFileSync(join(dir, 'walk.png'), makePng({ width: 800, height: 200 }))
+    writeFileSync(join(dir, 'idle.png'), makePng({ width: 200, height: 200 }))
+    writeFileSync(join(dir, 'lines.json'), JSON.stringify({ version: 1, lines: { normal: ['원본 말'] } }))
+    return dir
+  }
+  const sample = (dir: string) => ({ key: 'bmm', name: '빨간 모자', frames: 4, frameSize: 200, dir })
+  const input = (normal: string) => ({ normal: [normal], grabbed: [], struggling: [] })
+
+  function withUser() {
+    const { service, store } = setup()
+    store.add({ id: 'user0001', name: '내 캐릭터', frames: 4, frameSize: 200, createdAt: 1 }, Buffer.from([0]), Buffer.from([0]))
+    return { service, store }
+  }
+
+  it('getLines: 기본·등록 캐릭터의 대화셋과 복원 종류를 돌려준다', () => {
+    const { service } = withUser()
+    const def = service.getLines(null)
+    expect(def).toMatchObject({ ok: true, view: { restore: 'default', modified: false } })
+    const user = service.getLines('user0001')
+    expect(user).toMatchObject({ ok: true, view: { restore: 'clear', modified: false } })
+  })
+
+  it('saveLines: 검증을 통과하면 저장하고 정규화된 값과 정리 개수를 돌려준다', () => {
+    const { service, store } = withUser()
+    const r = service.saveLines('user0001', input('안녕\n\n안녕\n반가워'))
+    expect(r).toMatchObject({ ok: true, dropped: 1, merged: 1 })
+    expect(store.readLinesOf('user0001').normal).toEqual(['안녕', '반가워'])
+    expect(service.getLines('user0001')).toMatchObject({ view: { modified: true } })
+  })
+
+  it('saveLines: 검증에 실패하면 issues만 돌려주고 아무것도 쓰지 않는다', () => {
+    const { service, store } = withUser()
+    const r = service.saveLines('user0001', input('a'.repeat(61)))
+    expect(r).toMatchObject({ ok: false })
+    expect((r as { issues: unknown[] }).issues).toHaveLength(1)
+    expect(store.readLinesOf('user0001')).toEqual({ normal: [], grabbed: [], struggling: [] })
+  })
+
+  it('saveLines: 존재하지 않는 캐릭터와 잘못된 입력 모양을 거부한다 (FR-011)', () => {
+    const { service } = withUser()
+    expect(service.saveLines('nobody01', input('a'))).toMatchObject({ ok: false, message: expect.any(String) })
+    expect(service.saveLines('user0001', { normal: [3], grabbed: [], struggling: [] } as never)).toMatchObject({ ok: false })
+    expect(service.saveLines('user0001', { normal: ['a'], unknown: ['b'] } as never)).toMatchObject({ ok: false })
+    expect(service.saveLines('user0001', 'x' as never)).toMatchObject({ ok: false })
+  })
+
+  it('저장한 문장은 그 캐릭터를 활성으로 하면 lines()에 반영된다 (FR-003)', () => {
+    const { service } = withUser()
+    service.saveLines('user0001', input('새 말'))
+    service.apply('user0001')
+    expect(service.lines().normal).toEqual(['새 말'])
+  })
+
+  it('restoreLines: 기본 캐릭터는 편집본을 지워 처음 문장으로 돌아간다', () => {
+    const { service } = withUser()
+    service.saveLines(null, input('고친 말'))
+    expect(service.getLines(null)).toMatchObject({ view: { modified: true } })
+    expect(service.restoreLines(null)).toMatchObject({ ok: true })
+    expect(service.getLines(null)).toMatchObject({ view: { modified: false } })
+  })
+
+  it('restoreLines: 샘플은 원본 문장을 다시 복사한다', () => {
+    const { service } = setup()
+    const dir = sampleDir()
+    service.installSamples([sample(dir)])
+    const id = service.list().characters[1].id as string
+    expect(service.getLines(id)).toMatchObject({ view: { restore: 'default', modified: false } })
+    service.saveLines(id, input('고친 말'))
+    expect(service.getLines(id)).toMatchObject({ view: { modified: true } })
+    expect(service.restoreLines(id)).toMatchObject({ ok: true, lines: { normal: ['원본 말'] } })
+    expect(service.getLines(id)).toMatchObject({ view: { modified: false } })
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('restoreLines: 등록 캐릭터는 모두 비운다', () => {
+    const { service, store } = withUser()
+    service.saveLines('user0001', input('a'))
+    expect(service.restoreLines('user0001')).toMatchObject({ ok: true })
+    expect(store.readLinesOf('user0001')).toEqual({ normal: [], grabbed: [], struggling: [] })
+  })
+
+  it('restoreLines: 존재하지 않는 캐릭터는 거부한다', () => {
+    const { service } = withUser()
+    expect(service.restoreLines('nobody01')).toMatchObject({ ok: false })
+  })
+})

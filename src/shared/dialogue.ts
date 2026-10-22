@@ -61,3 +61,69 @@ export const DEFAULT_LINES: Lines = {
   grabbed: ['앗!', '어? 누가 날 잡았어.', '내려 줘냥.'],
   struggling: ['놓아 줘!', '버둥버둥!', '이제 그만 놔 주라냥!']
 }
+
+export type LinesIssue = {
+  category: Category
+  /** 입력한 텍스트의 줄 번호(1부터). 개수 초과처럼 특정 줄이 아니면 0 */
+  line: number
+  code: 'too-long' | 'too-many'
+  message: string
+}
+
+export type LinesValidation = {
+  /** issues가 없을 때만 true. 이때 lines를 저장한다 */
+  ok: boolean
+  lines: Lines
+  issues: LinesIssue[]
+  /** 공백뿐이라 제외한 줄 수 */
+  dropped: number
+  /** 같은 분류의 중복이라 합친 문장 수 */
+  merged: number
+}
+
+/**
+ * 편집 화면의 입력을 검증·정규화한다 (spec FR-004~006, data-model.md).
+ * 각 분류의 값은 입력한 문자열들이며 줄바꿈이 섞여 있어도 된다. 화면(입력 중)과 메인(저장 직전)이 함께 쓴다.
+ */
+export function validateLinesInput(input: Partial<Record<Category, readonly string[]>>): LinesValidation {
+  const { maxLength, maxPerCategory } = config.speech
+  const result: LinesValidation = { ok: true, lines: emptyLines(), issues: [], dropped: 0, merged: 0 }
+  for (const category of DIALOGUE_CATEGORIES) {
+    const seen = new Set<string>()
+    const kept: string[] = []
+    let lineNo = 0
+    for (const chunk of input[category] ?? []) {
+      if (chunk === '') continue // 비어 있는 입력란은 정리한 줄로 세지 않는다
+      for (const raw of chunk.split(/\r\n|\r|\n/)) {
+        lineNo++
+        const text = raw.trim()
+        if (text.length === 0) {
+          result.dropped++
+        } else if (text.length > maxLength) {
+          result.issues.push({
+            category,
+            line: lineNo,
+            code: 'too-long',
+            message: `${lineNo}번째 줄이 ${text.length}자입니다. ${maxLength}자 이하여야 합니다.`
+          })
+        } else if (seen.has(text)) {
+          result.merged++
+        } else {
+          seen.add(text)
+          kept.push(text)
+        }
+      }
+    }
+    if (kept.length > maxPerCategory) {
+      result.issues.push({
+        category,
+        line: 0,
+        code: 'too-many',
+        message: `문장이 ${kept.length}개입니다. 분류당 최대 ${maxPerCategory}개까지 저장할 수 있습니다.`
+      })
+    }
+    result.lines[category] = kept
+  }
+  result.ok = result.issues.length === 0
+  return result
+}

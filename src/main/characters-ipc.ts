@@ -6,7 +6,10 @@ import {
   CHANNEL_CHARACTERS_DELETE,
   CHANNEL_CHARACTERS_LIST,
   CHANNEL_CHARACTERS_REGISTER,
-  CHANNEL_CHARACTERS_VALIDATE
+  CHANNEL_CHARACTERS_VALIDATE,
+  CHANNEL_LINES_GET,
+  CHANNEL_LINES_RESTORE,
+  CHANNEL_LINES_SAVE
 } from '../shared/ipc-settings'
 import type { RegisterInput } from '../shared/ipc'
 import type { CharacterService } from './characters-service'
@@ -62,6 +65,20 @@ export function registerCharactersIpc(service: CharacterService, hooks: Characte
       notifyCharactersChanged()
     }
     return result
+  })
+  const lineTarget = (id: unknown): string | null | undefined =>
+    id === null || typeof id === 'string' ? id : undefined
+  ipcMain.handle(CHANNEL_LINES_GET, (_event, id: unknown) => {
+    const target = lineTarget(id)
+    return target === undefined ? { ok: false, message: '요청 형식이 올바르지 않습니다.' } : service.getLines(target)
+  })
+  ipcMain.handle(CHANNEL_LINES_SAVE, (_event, id: unknown, input: unknown) => {
+    const target = lineTarget(id)
+    return target === undefined ? { ok: false, message: '요청 형식이 올바르지 않습니다.' } : service.saveLines(target, input)
+  })
+  ipcMain.handle(CHANNEL_LINES_RESTORE, (_event, id: unknown) => {
+    const target = lineTarget(id)
+    return target === undefined ? { ok: false, message: '요청 형식이 올바르지 않습니다.' } : service.restoreLines(target)
   })
   ipcMain.handle(CHANNEL_CHARACTERS_DELETE, (_event, id: unknown) => {
     if (typeof id !== 'string') return { ok: false, message: '기본 캐릭터는 삭제할 수 없습니다.' }
