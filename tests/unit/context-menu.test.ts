@@ -1,14 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ContextMenuController } from '../../src/shared/context-menu-controller'
 
-function setup() {
+function setup(blocked = false) {
   const calls: string[] = []
   const controller = new ContextMenuController({
     setUserControlled: (active) => calls.push(`control:${active}`),
     openSettings: () => calls.push('settings'),
     zoom: () => undefined,
     zoomState: () => ({ canZoomIn: true, canZoomOut: true }),
-    quit: () => undefined
+    quit: () => undefined,
+    isBlocked: () => blocked
   })
   let onClosed: (() => void) | undefined
   const popup = vi.fn((closed: () => void) => {
@@ -19,6 +20,13 @@ function setup() {
 }
 
 describe('ContextMenuController', () => {
+  it('드래그 중(차단)이면 메뉴를 열지 않고 이동 상태도 건드리지 않는다 (FR-009)', () => {
+    const { controller, calls, popup } = setup(true)
+    controller.handleContextMenu(popup)
+    expect(popup).not.toHaveBeenCalled()
+    expect(calls).toEqual([])
+  })
+
   it('우클릭하면 이동을 멈추고 메뉴를 한 번 띄운다 (FR-001, FR-003)', () => {
     const { controller, calls, popup } = setup()
     controller.handleContextMenu(popup)
@@ -80,7 +88,8 @@ describe('ContextMenuController 확대·축소·종료', () => {
       openSettings: () => calls.push('settings'),
       zoom: (direction) => calls.push(`zoom:${direction}`),
       zoomState: () => ({ canZoomIn: true, canZoomOut: false }),
-      quit: () => calls.push('quit')
+      quit: () => calls.push('quit'),
+      isBlocked: () => false
     })
     return { controller, calls }
   }

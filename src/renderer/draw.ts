@@ -91,3 +91,32 @@ function apply(update: CharacterUpdate): void {
 useDefaultAppearance()
 window.kakaru.onAppearance(applyAppearance)
 window.kakaru.onCharacterUpdate(apply)
+
+// 드래그 이동: 창은 커서가 캐릭터 히트 영역 위일 때만 입력을 받으므로 문서 전체의 누름이 곧 캐릭터를 누른 것이다.
+// 위치 추적은 메인이 하고, 여기서는 누름과 뗌만 알린다.
+let grabbing = false
+/** 이만큼(ms) 계속 잡혀 있으면 발버둥 모션을 시작한다 */
+const STRUGGLE_AFTER_MS = 5000
+let struggleTimer: ReturnType<typeof setTimeout> | undefined
+
+function releaseGrab(): void {
+  if (!grabbing) return
+  grabbing = false
+  clearTimeout(struggleTimer)
+  actor.classList.remove('struggling')
+  window.kakaru.grabEnd()
+}
+
+document.addEventListener('dragstart', (e) => e.preventDefault())
+document.addEventListener('pointerdown', (e) => {
+  // macOS의 Ctrl+클릭은 우클릭 메뉴로 취급한다
+  if (e.button !== 0 || e.ctrlKey || grabbing) return
+  grabbing = true
+  document.documentElement.setPointerCapture(e.pointerId)
+  window.kakaru.grabStart()
+  struggleTimer = setTimeout(() => actor.classList.add('struggling'), STRUGGLE_AFTER_MS)
+})
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
+  document.addEventListener(type, releaseGrab)
+}
+window.addEventListener('blur', releaseGrab)

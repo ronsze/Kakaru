@@ -46,7 +46,22 @@
       #sprite.facing-left {
         transform: scale(calc(-1 * var(--scale)), var(--scale));
       }
+      /* <img>는 기본적으로 끌 수 있어, 누른 채 움직이면 브라우저 드래그가 시작되며 포인터 이벤트가 취소된다 */
+      /* 오래 잡혀 있으면 발버둥: 좌우를 번갈아 보며 살짝 흔들린다 (transform 애니메이션이라 compositor가 처리) */
+      #actor.struggling #sprite {
+        animation: struggle 0.5s steps(1, end) infinite;
+      }
+      @keyframes struggle {
+        0% {
+          transform: scale(var(--scale)) rotate(-6deg);
+        }
+        50% {
+          transform: scale(calc(-1 * var(--scale)), var(--scale)) rotate(6deg);
+        }
+      }
       #sprite img {
+        -webkit-user-drag: none;
+        user-select: none;
         position: absolute;
         top: 0;
         left: 0;

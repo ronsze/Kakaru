@@ -3,6 +3,7 @@ import { powerMonitor, screen } from 'electron'
 import { WalkableArea } from '../shared/area'
 import { MovementEngine } from '../shared/behavior'
 import { config } from '../shared/config'
+import { DragController } from '../shared/drag-controller'
 import { CHANNEL_CHARACTER_UPDATE, type CharacterUpdate } from '../shared/ipc'
 import type { Character } from '../shared/types'
 import type { OverlayManager } from './overlay'
@@ -17,6 +18,8 @@ export type SimulationSnapshot = {
 }
 
 let engine: MovementEngine
+let drag: DragController
+let menuOpen = false
 let area: WalkableArea
 let displayIds: number[] = []
 let overlays: OverlayManager
@@ -38,6 +41,7 @@ function buildArea(): void {
 
 /** 디스플레이 구성이 바뀌면 오버레이 창과 이동 가능 영역을 다시 만든다 (FR-008) */
 function onDisplaysChanged(): void {
+  drag.end() // 잡은 채 모니터 구성이 바뀌면 놓은 것으로 본다 (FR-010)
   overlays.sync()
   buildArea()
   engine.setWalkableArea(area)
@@ -80,7 +84,15 @@ function tick(): void {
   const dt = Math.min((t - lastTime) / 1000, MAX_DT_SECONDS)
   lastTime = t
   clock += dt * 1000
-  broadcast(engine.tick(clock, dt))
+  if (drag.active) {
+    const before = engine.getCharacter().position
+    drag.update()
+    const after = engine.getCharacter().position
+    // 위치가 바뀐 틱만 보낸다 (렌더러는 속도 0이라 보낸 위치에 그대로 둔다)
+    broadcast(engine.tick(clock, dt), after.x !== before.x || after.y !== before.y)
+  } else {
+    broadcast(engine.tick(clock, dt))
+  }
   afterTick?.()
 }
 
@@ -90,12 +102,20 @@ export function startSimulation(manager: OverlayManager, onTick?: () => void): v
   afterTick = onTick
   buildArea()
   engine = new MovementEngine({ area, random: Math.random, startAt: 0 })
+  drag = new DragController({
+    getCursor: () => screen.getCursorScreenPoint(),
+    getPosition: () => engine.getCharacter().position,
+    isMenuOpen: () => menuOpen,
+    setUserControlled,
+    moveTo: (p) => engine.moveTo(p)
+  })
 
   screen.on('display-added', onDisplaysChanged)
   screen.on('display-removed', onDisplaysChanged)
   screen.on('display-metrics-changed', onDisplaysChanged)
   // 절전 복귀 후 큰 시간 점프로 캐릭터가 튀지 않게 기준 시각을 초기화한다
   powerMonitor.on('resume', () => {
+    drag.end()
     lastTime = performance.now()
   })
 
@@ -108,13 +128,28 @@ export function stopSimulation(): void {
   timer = undefined
 }
 
-/**
- * 사용자 조작(롱프레스·우클릭 메뉴) 시작/종료를 엔진에 즉시 반영한다.
- * 렌더러 입력 IPC 채널은 해당 기능에서 추가하며, 지금은 내부 API로만 제공한다.
- */
+/** 사용자 조작(드래그 잡기·우클릭 메뉴) 시작/종료를 엔진에 즉시 반영한다. */
 export function setUserControlled(active: boolean): void {
   engine.setUserControlled(active, clock)
   broadcast(engine.getCharacter(), true)
+}
+
+/** 우클릭 메뉴가 열려 있는 동안은 잡기를 시작하지 않는다 */
+export function setMenuOpen(open: boolean): void {
+  menuOpen = open
+}
+
+/** 렌더러가 캐릭터를 잡기 시작·끝냈다 (드래그 이동) */
+export function startGrab(): void {
+  drag.start()
+}
+
+export function endGrab(): void {
+  drag.end()
+}
+
+export function isGrabbed(): boolean {
+  return drag.active
 }
 
 /** 캐릭터 크기 배율을 히트 영역에 반영한다 (확대·축소) */

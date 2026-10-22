@@ -6,10 +6,18 @@ import { CharacterService, type SampleCharacter } from './characters-service'
 import { CharacterStore } from './characters-store'
 import { nativeImageInspector, registerCharactersIpc } from './characters-ipc'
 import { attachContextMenu } from './context-menu'
+import { registerDragIpc } from './drag-ipc'
 import { createHitTest } from './hit-test'
 import { OverlayManager } from './overlay'
 import { openSettingsWindow } from './settings-window'
-import { setCharacterScale, setUserControlled, startSimulation, stopSimulation } from './simulation'
+import {
+  isGrabbed,
+  setCharacterScale,
+  setMenuOpen,
+  setUserControlled,
+  startSimulation,
+  stopSimulation
+} from './simulation'
 
 /** 처음 실행 때 등록된 캐릭터로 넣어 두는 샘플 (기본 캐릭터는 폴리곤 고양이) */
 const SAMPLES: SampleCharacter[] = [
@@ -52,7 +60,11 @@ app.whenReady().then(() => {
   }
 
   const menu = new ContextMenuController({
-    setUserControlled,
+    setUserControlled: (active) => {
+      setMenuOpen(active)
+      setUserControlled(active)
+    },
+    isBlocked: isGrabbed,
     openSettings: openSettingsWindow,
     zoom: (direction) => {
       characters.zoom(direction)
@@ -67,6 +79,7 @@ app.whenReady().then(() => {
       win.webContents.on('did-finish-load', () => sendAppearance(win))
     }
   })
+  registerDragIpc()
   registerCharactersIpc(characters, { onAppearanceChanged: refreshAppearance })
   overlays.sync()
   // visibleOnFullScreen 설정이 Dock 아이콘을 다시 보이게 할 수 있어 창 생성 뒤 한 번 더 숨긴다

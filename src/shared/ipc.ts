@@ -3,6 +3,8 @@ import type { BehaviorState, Heading } from './types'
 
 export const CHANNEL_CHARACTER_UPDATE = 'character:update'
 export const CHANNEL_APPEARANCE = 'character:appearance'
+export const CHANNEL_GRAB_START = 'character:grab-start'
+export const CHANNEL_GRAB_END = 'character:grab-end'
 
 /**
  * 디스플레이별 오버레이 창에 보내는 캐릭터 상태. x, y는 창 로컬 좌표(DIP).
@@ -24,6 +26,9 @@ export type CharacterUpdate = {
 export type KakaruApi = {
   onCharacterUpdate(callback: (update: CharacterUpdate) => void): void
   onAppearance(callback: (appearance: Appearance) => void): void
+  /** 캐릭터를 잡기 시작·끝냄 (드래그 이동) */
+  grabStart(): void
+  grabEnd(): void
 }
 
 export type { Appearance, ValidationError }

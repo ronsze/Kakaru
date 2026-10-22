@@ -7,6 +7,8 @@ export type ContextMenuPorts = {
   /** 지금 더 확대·축소할 수 있는지 (메뉴를 열 때 항목의 활성 여부에 쓴다) */
   zoomState(): { canZoomIn: boolean; canZoomOut: boolean }
   quit(): void
+  /** 드래그 중 등 메뉴를 열면 안 되는 상태인지 */
+  isBlocked(): boolean
 }
 
 /**
@@ -20,7 +22,7 @@ export class ContextMenuController {
 
   /** @param popup 메뉴를 띄우고, 메뉴가 닫히면 인자로 받은 콜백을 호출한다 */
   handleContextMenu(popup: (onClosed: () => void) => void): void {
-    if (this.open) return
+    if (this.open || this.ports.isBlocked()) return
     this.open = true
     this.ports.setUserControlled(true)
     try {

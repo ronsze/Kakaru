@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import {
   CHANNEL_APPEARANCE,
   CHANNEL_CHARACTER_UPDATE,
+  CHANNEL_GRAB_END,
+  CHANNEL_GRAB_START,
   type Appearance,
   type CharacterUpdate,
   type KakaruApi
@@ -13,6 +15,12 @@ const api: KakaruApi = {
   },
   onAppearance(callback) {
     ipcRenderer.on(CHANNEL_APPEARANCE, (_event, appearance: Appearance) => callback(appearance))
+  },
+  grabStart() {
+    ipcRenderer.send(CHANNEL_GRAB_START)
+  },
+  grabEnd() {
+    ipcRenderer.send(CHANNEL_GRAB_END)
   }
 }
 

@@ -31,11 +31,11 @@ type CharacterUpdate = {
 ## 렌더러 → 메인
 
 이번 기능에서는 렌더러가 메인에 보내는 입력 채널이 없다(히트 테스트는 메인이 커서를 폴링).
-롱프레스 이동·우클릭 메뉴 기능이 추가될 때 아래 채널을 정의한다.
+드래그 이동·우클릭 메뉴 기능이 추가될 때 아래 채널을 정의한다. 드래그 채널은 [004 계약](../../004-character-drag-move/contracts/ipc.md)으로 확정했다.
 
 | 채널(예정) | 용도 |
 |---|---|
-| `character:grab-start` / `character:grab-end` | 롱프레스 잡기 시작·종료 → `UserControlled` 전이 (FR-006) |
+| `character:grab-start` / `character:grab-end` | 드래그 잡기 시작·종료 → `UserControlled` 전이 (FR-006) |
 | `character:menu-open` / `character:menu-close` | 우클릭 메뉴 열림·닫힘 → `UserControlled` 전이 (FR-006) |
 
 ## 메인 내부 계약 (모듈 경계)

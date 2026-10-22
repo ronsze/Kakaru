@@ -57,7 +57,7 @@ export class MovementEngine {
   }
 
   /**
-   * 사용자 조작(롱프레스 잡기·우클릭 메뉴) 시작/종료를 알린다 (FR-006).
+   * 사용자 조작(드래그 잡기·우클릭 메뉴) 시작/종료를 알린다 (FR-006).
    * 시작하면 즉시 정지하고, 종료하면 현재 위치에서 Idle로 재개한다.
    */
   setUserControlled(active: boolean, now: number): void {
@@ -69,6 +69,13 @@ export class MovementEngine {
     } else if (c.state === 'UserControlled') {
       this.toIdle(now)
     }
+  }
+
+  /** 사용자가 잡고 있는 동안 캐릭터 위치를 옮긴다. 영역 밖이면 가장 가까운 디스플레이 안으로 맞춘다 */
+  moveTo(point: Point): void {
+    const c = this.character
+    if (c.state !== 'UserControlled') return
+    c.position = this.area.clamp(point)
   }
 
   tick(now: number, dt: number): Character {
