@@ -27,6 +27,8 @@ const previewWalk = $<HTMLImageElement>('preview-walk')
 const previewIdle = $<HTMLImageElement>('preview-idle')
 const listEl = $<HTMLUListElement>('list')
 const noticeEl = $<HTMLDivElement>('notice')
+const importButton = $<HTMLButtonElement>('import')
+const importDetailsEl = $<HTMLUListElement>('import-details')
 
 const api = window.kakaruSettings
 
@@ -234,6 +236,12 @@ function renderItem(c: CharacterSummary, activeId: string | null): HTMLLIElement
   edit.addEventListener('click', () => requestLeave(() => void openLines(c)))
   actions.append(edit)
   if (!c.builtin && c.id !== null) {
+    const exp = document.createElement('button')
+    exp.type = 'button'
+    exp.className = 'btn-export'
+    exp.textContent = '내보내기'
+    exp.addEventListener('click', () => void exportCharacter(c))
+    actions.append(exp)
     const del = document.createElement('button')
     del.type = 'button'
     del.className = 'btn-delete'
@@ -253,6 +261,49 @@ async function applyCharacter(c: CharacterSummary): Promise<void> {
     setStatus(result.message, 'fail')
   }
   await refreshList()
+}
+
+function showImportDetails(details: readonly string[]): void {
+  importDetailsEl.replaceChildren(
+    ...details.map((text) => {
+      const li = document.createElement('li')
+      li.textContent = text
+      return li
+    })
+  )
+}
+
+async function importCharacter(): Promise<void> {
+  importButton.disabled = true
+  showImportDetails([])
+  try {
+    const result = await api.importCharacter()
+    if (result.ok) {
+      setStatus(`"${result.name}" 캐릭터를 가져왔습니다.`, 'ok')
+      await refreshList()
+    } else if ('message' in result) {
+      setStatus(result.message, 'fail')
+      showImportDetails(result.details)
+    }
+    // 취소는 아무것도 표시하지 않는다
+  } catch (error) {
+    setStatus(`가져오는 중 오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`, 'fail')
+  } finally {
+    importButton.disabled = false
+  }
+}
+
+importButton.addEventListener('click', () => void importCharacter())
+
+async function exportCharacter(c: CharacterSummary): Promise<void> {
+  if (c.id === null) return
+  const result = await api.exportCharacter(c.id)
+  if (result.ok) {
+    setStatus(`"${c.name}" 캐릭터를 ${result.fileName}으로 내보냈습니다.`, 'ok')
+  } else if ('message' in result) {
+    setStatus(result.message, 'fail')
+  }
+  // 취소는 아무것도 표시하지 않는다
 }
 
 async function deleteCharacter(c: CharacterSummary): Promise<void> {

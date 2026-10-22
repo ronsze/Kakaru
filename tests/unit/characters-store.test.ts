@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -105,6 +105,36 @@ describe('CharacterStore 추가', () => {
     expect(() => store.add(meta(), walk, null as unknown as Buffer)).toThrow()
     expect(existsSync(dir)).toBe(false)
     expect(store.list().map((c) => c.id)).toEqual(['zzzz9999'])
+  })
+})
+
+describe('CharacterStore 추가 (대사 동시 저장)', () => {
+  const lines = { greeting: ['안녕'], normal: ['평소'], grabbed: [], struggling: ['놓아 줘'] }
+
+  it('lines를 주면 이미지와 함께 lines.json을 쓰고 readLinesOf가 그대로 돌려준다', () => {
+    const store = new CharacterStore(root)
+    store.load()
+    store.add(meta(), walk, idle, undefined, lines)
+    const file = JSON.parse(readFileSync(join(root, 'characters', 'abcd1234', 'lines.json'), 'utf8'))
+    expect(file).toEqual({ version: 1, lines })
+    expect(store.readLinesOf('abcd1234')).toEqual(lines)
+  })
+
+  it('lines를 주지 않으면 lines.json이 생기지 않는다', () => {
+    const store = new CharacterStore(root)
+    store.load()
+    store.add(meta(), walk, idle)
+    expect(existsSync(join(root, 'characters', 'abcd1234', 'lines.json'))).toBe(false)
+  })
+
+  it('settings.json 저장이 실패하면 만든 폴더(이미지·lines.json)가 지워지고 목록에 추가되지 않는다', () => {
+    const store = new CharacterStore(root)
+    store.load()
+    // settings.json.tmp 자리에 폴더를 만들어 저장을 실패시킨다
+    mkdirSync(join(root, 'settings.json.tmp'), { recursive: true })
+    expect(() => store.add(meta(), walk, idle, undefined, lines)).toThrow()
+    expect(existsSync(join(root, 'characters', 'abcd1234'))).toBe(false)
+    expect(store.list()).toEqual([])
   })
 })
 

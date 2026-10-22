@@ -140,8 +140,11 @@ export class CharacterStore {
     return true
   }
 
-  /** 이미지를 저장하고 목록에 추가한다. 중간에 실패하면 만든 폴더를 지운다. */
-  add(meta: CharacterSet, walk: Buffer, idle: Buffer, seedKey?: string): void {
+  /**
+   * 이미지(와 lines가 있으면 대화셋)를 저장하고 목록에 추가한다. 중간에 실패하면 만든 폴더를 지운다.
+   * lines를 주면 이미지와 같은 롤백 범위에서 lines.json을 쓴다 (캐릭터 가져오기).
+   */
+  add(meta: CharacterSet, walk: Buffer, idle: Buffer, seedKey?: string, lines?: Lines): void {
     const dir = this.characterDir(meta.id)
     if (this.settings.characters.some((c) => c.id === meta.id)) {
       throw new Error(`이미 있는 캐릭터 id: ${meta.id}`)
@@ -150,6 +153,7 @@ export class CharacterStore {
     try {
       writeFileSync(join(dir, 'walk.png'), walk)
       writeFileSync(join(dir, 'idle.png'), idle)
+      if (lines) writeFileSync(join(dir, 'lines.json'), JSON.stringify({ version: 1, lines }, null, 2))
       this.settings.characters.push({ ...meta })
       if (seedKey) this.settings.seeded = [...(this.settings.seeded ?? []), seedKey]
       try {

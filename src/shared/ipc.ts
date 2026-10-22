@@ -91,6 +91,18 @@ export type RestoreLinesResult = { ok: true; lines: Lines } | { ok: false; messa
 
 export type { Category, Lines, LinesIssue }
 
+/** 캐릭터 내보내기. canceled는 사용자가 대화상자를 닫은 것이라 오류로 보이지 않는다 */
+export type ExportResult =
+  | { ok: true; fileName: string }
+  | { ok: false; canceled: true }
+  | { ok: false; message: string }
+
+/** 캐릭터 가져오기. details는 이미지·이름·대사 위반 문구 목록(없으면 빈 배열) */
+export type ImportResult =
+  | { ok: true; id: string; name: string }
+  | { ok: false; canceled: true }
+  | { ok: false; message: string; details: string[] }
+
 /** preload가 설정 창에 노출하는 API */
 export type KakaruSettingsApi = {
   list(): Promise<ListResult>
@@ -103,5 +115,9 @@ export type KakaruSettingsApi = {
   getLines(id: string | null): Promise<GetLinesResult>
   saveLines(id: string | null, input: Record<Category, string[]>): Promise<SaveLinesResult>
   restoreLines(id: string | null): Promise<RestoreLinesResult>
+  /** 저장 대화상자를 열어 등록 캐릭터 하나를 .kakaru 파일로 내보낸다 */
+  exportCharacter(id: string): Promise<ExportResult>
+  /** 열기 대화상자를 열어 고른 .kakaru 파일로 새 캐릭터를 등록한다 */
+  importCharacter(): Promise<ImportResult>
   onChanged(callback: () => void): void
 }

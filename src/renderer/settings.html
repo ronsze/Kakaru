@@ -161,6 +161,18 @@
         gap: 16px;
         margin-top: 12px;
       }
+      .import-row {
+        margin-top: 10px;
+      }
+      .import-details {
+        margin: 6px 0 0;
+        padding-left: 18px;
+        font-size: 12px;
+        color: #b00020;
+      }
+      .import-details:empty {
+        display: none;
+      }
       .preview-box {
         text-align: center;
         font-size: 12px;
@@ -299,6 +311,8 @@
       <section>
         <h2>등록된 캐릭터</h2>
         <ul id="list"></ul>
+        <div class="import-row"><button id="import" type="button">파일에서 가져오기</button></div>
+        <ul id="import-details" class="import-details" role="alert"></ul>
       </section>
       <section id="register-section">
         <h2>새 캐릭터 등록</h2>

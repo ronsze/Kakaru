@@ -13,8 +13,17 @@ import type {
   SimpleResult,
   ValidationResult
 } from '../shared/ipc'
+import { buildCharacterPackage, exportFileName, parseCharacterPackage, uniqueName } from '../shared/character-package'
 import { config } from '../shared/config'
-import { DEFAULT_LINES, DIALOGUE_CATEGORIES, emptyLines, sanitizeLines, validateLinesInput, type Lines } from '../shared/dialogue'
+import {
+  DEFAULT_LINES,
+  DIALOGUE_CATEGORIES,
+  emptyLines,
+  sanitizeLines,
+  validateLinesInput,
+  type Category,
+  type Lines
+} from '../shared/dialogue'
 import type { CharacterStore } from './characters-store'
 
 /** 기본 캐릭터 이미지의 프레임 한 변 (번들된 assets/walk.png, idle.png) */
@@ -28,6 +37,23 @@ export type SampleCharacter = {
   frameSize: number
   dir: string
 }
+
+/** 가져오기 거부 문구에서 위반 대상을 알리는 이름 */
+const TARGET_LABELS = { walk: '걷기 이미지', idle: '정지 이미지', name: '이름', frames: '프레임 수' } as const
+const CATEGORY_LABELS: Record<Category, string> = {
+  greeting: '인사',
+  normal: '평소',
+  grabbed: '잡혔을 때',
+  struggling: '오래 잡혔을 때'
+}
+
+export type ExportPackageResult =
+  | { ok: true; content: string; suggestedFileName: string }
+  | { ok: false; message: string }
+
+export type ImportPackageResult =
+  | { ok: true; id: string; name: string }
+  | { ok: false; message: string; details: string[] }
 
 export type ZoomState = { scale: number; canZoomIn: boolean; canZoomOut: boolean }
 
@@ -316,6 +342,70 @@ export class CharacterService {
       return { ok: false, message: `되돌리지 못했습니다: ${error instanceof Error ? error.message : String(error)}` }
     }
     return { ok: true, lines: this.store.readLinesOf(id) }
+  }
+
+  /**
+   * 등록한 캐릭터를 .kakaru 파일 내용으로 만든다. 대사는 저장돼 있는 값이다.
+   * 기본 캐릭터·등록되지 않은 id·이미지를 읽을 수 없는 캐릭터는 거부한다.
+   */
+  exportPackage(id: string): ExportPackageResult {
+    if (id === null || typeof id !== 'string') return { ok: false, message: '기본 캐릭터는 내보낼 수 없습니다.' }
+    const character = this.store.list().find((c) => c.id === id)
+    if (!character) return { ok: false, message: '등록되지 않은 캐릭터입니다.' }
+    const walk = this.store.readImage(id, 'walk')
+    const idle = this.store.readImage(id, 'idle')
+    if (!walk || !idle) return { ok: false, message: '캐릭터 이미지를 읽을 수 없어 내보낼 수 없습니다.' }
+    const content = buildCharacterPackage({
+      name: character.name,
+      frames: character.frames,
+      walk: walk.toString('base64'),
+      idle: idle.toString('base64'),
+      lines: this.store.readLinesOf(id)
+    })
+    return { ok: true, content, suggestedFileName: exportFileName(character.name) }
+  }
+
+  /**
+   * .kakaru 파일 내용으로 새 캐릭터를 등록한다. 기존 이미지·대사 검증을 그대로 적용하고, 모두 통과해야
+   * 저장한다. 항상 새 id로 등록하며 활성 캐릭터는 바꾸지 않는다. 이름이 겹치면 번호를 붙인다.
+   */
+  importPackage(text: string): ImportPackageResult {
+    const parsed = parseCharacterPackage(text)
+    if (!parsed.ok) return { ok: false, message: parsed.message, details: [] }
+    const { data } = parsed
+    const walk = Buffer.from(data.walk, 'base64')
+    const idle = Buffer.from(data.idle, 'base64')
+    const registration = validateRegistration(
+      { name: data.name, frames: data.frames, walk, idle },
+      this.inspector,
+      [] // 겹치는 이름은 거부하지 않고 번호를 붙인다
+    )
+    const linesResult = validateLinesInput(data.lines)
+    if (!registration.ok || !linesResult.ok) {
+      const details = [
+        ...(registration.ok ? [] : registration.errors.map((e) => `${TARGET_LABELS[e.target]}: ${e.message}`)),
+        ...linesResult.issues.map((i) => `대사(${CATEGORY_LABELS[i.category]}): ${i.message}`)
+      ]
+      return { ok: false, message: '캐릭터 파일의 내용이 규격에 맞지 않아 가져오지 않았습니다.', details }
+    }
+    const name = uniqueName(
+      data.name.trim(),
+      this.store.list().map((c) => c.name)
+    )
+    const id = this.makeId()
+    try {
+      this.store.add(
+        { id, name, frames: data.frames, frameSize: registration.frameSize, createdAt: this.now() },
+        walk,
+        idle,
+        undefined,
+        linesResult.lines
+      )
+    } catch {
+      // 저장소가 부분 결과를 지우고 던진 것이다. 내부 경로가 담긴 원문은 보이지 않는다
+      return { ok: false, message: '등록하지 못했습니다. 저장 공간과 권한을 확인한 뒤 다시 시도하세요.', details: [] }
+    }
+    return { ok: true, id, name }
   }
 
   /** 현재 크기와 더 확대·축소할 수 있는지 (메뉴 항목의 활성 여부에 쓴다) */

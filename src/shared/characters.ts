@@ -5,6 +5,8 @@ export const ID_PATTERN = /^[a-z0-9]{8,32}$/
 export const LIMITS = {
   /** 이미지 파일 한 장의 최대 용량 (바이트) */
   maxImageBytes: 5 * 1024 * 1024,
+  /** 캐릭터 파일(.kakaru) 한 개의 최대 용량 (바이트). 이미지 두 장을 base64로 담은 크기에 여유를 둔 값 */
+  maxPackageBytes: 16 * 1024 * 1024,
   minFrames: 2,
   maxFrames: 32,
   /** 프레임 한 변의 픽셀 수 범위 */

@@ -3,6 +3,8 @@ import {
   CHANNEL_CHARACTERS_APPLY,
   CHANNEL_CHARACTERS_CHANGED,
   CHANNEL_CHARACTERS_DELETE,
+  CHANNEL_CHARACTERS_EXPORT,
+  CHANNEL_CHARACTERS_IMPORT,
   CHANNEL_CHARACTERS_LIST,
   CHANNEL_CHARACTERS_REGISTER,
   CHANNEL_CHARACTERS_VALIDATE,
@@ -22,6 +24,8 @@ const api: KakaruSettingsApi = {
   getLines: (id) => ipcRenderer.invoke(CHANNEL_LINES_GET, id),
   saveLines: (id, input) => ipcRenderer.invoke(CHANNEL_LINES_SAVE, id, input),
   restoreLines: (id) => ipcRenderer.invoke(CHANNEL_LINES_RESTORE, id),
+  exportCharacter: (id) => ipcRenderer.invoke(CHANNEL_CHARACTERS_EXPORT, id),
+  importCharacter: () => ipcRenderer.invoke(CHANNEL_CHARACTERS_IMPORT),
   onChanged(callback) {
     ipcRenderer.on(CHANNEL_CHARACTERS_CHANGED, () => callback())
   }
