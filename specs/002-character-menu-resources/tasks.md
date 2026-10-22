@@ -29,7 +29,7 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 
 **Purpose**: 설정 창이 쓰는 두 번째 렌더러 페이지와 preload를 빌드에 추가
 
-- [ ] T001 `electron.vite.config.ts`의 `renderer.build.rollupOptions.input`에 `settings`(`src/renderer/settings.html`)를, `preload.build.rollupOptions.input`에 `settings`(`src/preload/settings.ts`)를 추가한다. 출력은 `out/renderer/settings.html`, `out/preload/settings.js`
+- [x] T001 `electron.vite.config.ts`의 `renderer.build.rollupOptions.input`에 `settings`(`src/renderer/settings.html`)를, `preload.build.rollupOptions.input`에 `settings`(`src/preload/settings.ts`)를 추가한다. 출력은 `out/renderer/settings.html`, `out/preload/settings.js`
 
 ---
 
@@ -39,12 +39,12 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 사용자 스토리 작업을 시작할 수 없다
 
-- [ ] T002 [P] `src/shared/characters.ts`에 data-model.md의 타입과 제한 상수를 정의한다: `CharacterSet {id: string(정규식 ^[a-z0-9]{8,32}$), name: string(앞뒤 공백 제거 후 1~30자), frames: number(정수 2~32), frameSize: number(64~512), createdAt: number(ms, epoch)}`, `Settings {version: 1, activeId: string | null, characters: CharacterSet[]}`, `Appearance {walkUrl: string | null, idleUrl: string | null, frames: number}`, `ValidationError {code, target, message}`와 9개 코드(`not-png`, `too-large`, `corrupt-image`, `bad-frame-count`, `bad-walk-size`, `bad-idle-size`, `not-transparent`, `bad-name`, `duplicate-name`), 상수(이미지당 최대 5MB, 예약어 "기본", 기본 캐릭터 프레임 수 4)
-- [ ] T003 [P] `src/shared/ipc.ts`에 contracts/ipc.md의 채널 이름(`character:appearance`, `characters:list`, `characters:validate`, `characters:register`, `characters:apply`, `characters:delete`, `characters:changed`)과 페이로드 타입(`CharacterSummary`, `ListResult`, `RegisterInput`, `ValidationResult`, `RegisterResult`)을 추가하고, `KakaruApi`에 `onAppearance(callback)`를, 새 `KakaruSettingsApi`(list, validate, register, apply, delete, onChanged)를 정의한다
-- [ ] T004 [P] `tests/unit/png-fixture.ts`에 테스트용 PNG 생성 도우미를 만든다: 너비·높이·색상 유형(RGBA, RGB)·투명 픽셀 유무를 받아 유효한 PNG 바이트를 만든다(Node `zlib`로 IDAT 압축, CRC 계산 포함). 잘린 파일과 시그니처가 틀린 파일을 만드는 함수도 둔다
-- [ ] T005 [P] `src/main/index.ts` 맨 위(앱 `ready` 이전)에 환경 변수 `KAKARU_USER_DATA`가 있으면 `app.setPath('userData', 값)`으로 사용자 데이터 폴더를 바꾸는 코드를 추가한다(E2E·단위 테스트 격리용, research R7)
-- [ ] T006 [P] `tests/unit/characters-store.test.ts`: 임시 폴더를 루트로 쓰는 `CharacterStore` 테스트. 빈 상태 로드, 캐릭터 추가 후 `characters/<id>/walk.png`·`idle.png` 생성과 `settings.json` 기록, 재로드 시 유지, `id`가 `^[a-z0-9]{8,32}$`가 아니면 거부(경로 조작 방지), 쓰기 후 `settings.json.tmp`가 남지 않음, 이미지 저장 중 실패하면 만든 폴더를 지움, `settings.json`이 깨졌으면 `settings.json.broken-<ms>`로 보존하고 빈 상태로 시작, `version` 불일치도 같은 처리
-- [ ] T007 `src/main/characters-store.ts`에 `CharacterStore`(루트 경로를 생성자 인자로 받는 Electron 비의존 클래스)를 구현한다(T002, T006 의존): `load()`, `list()`, `add(meta, walkBytes, idleBytes)`, 원자적 쓰기(임시 파일에 쓴 뒤 `rename`). 불변식을 코드로 보장 — "`activeId`가 `null`이 아니면 `characters`에 그 id가 있어야 하고 이미지 파일이 읽혀야 한다. 어긋나면 `activeId`를 `null`로 되돌리고 `problem`을 설정한다"
+- [x] T002 [P] `src/shared/characters.ts`에 data-model.md의 타입과 제한 상수를 정의한다: `CharacterSet {id: string(정규식 ^[a-z0-9]{8,32}$), name: string(앞뒤 공백 제거 후 1~30자), frames: number(정수 2~32), frameSize: number(64~512), createdAt: number(ms, epoch)}`, `Settings {version: 1, activeId: string | null, characters: CharacterSet[]}`, `Appearance {walkUrl: string | null, idleUrl: string | null, frames: number}`, `ValidationError {code, target, message}`와 9개 코드(`not-png`, `too-large`, `corrupt-image`, `bad-frame-count`, `bad-walk-size`, `bad-idle-size`, `not-transparent`, `bad-name`, `duplicate-name`), 상수(이미지당 최대 5MB, 예약어 "기본", 기본 캐릭터 프레임 수 4)
+- [x] T003 [P] `src/shared/ipc.ts`에 contracts/ipc.md의 채널 이름(`character:appearance`, `characters:list`, `characters:validate`, `characters:register`, `characters:apply`, `characters:delete`, `characters:changed`)과 페이로드 타입(`CharacterSummary`, `ListResult`, `RegisterInput`, `ValidationResult`, `RegisterResult`)을 추가하고, `KakaruApi`에 `onAppearance(callback)`를, 새 `KakaruSettingsApi`(list, validate, register, apply, delete, onChanged)를 정의한다
+- [x] T004 [P] `tests/unit/png-fixture.ts`에 테스트용 PNG 생성 도우미를 만든다: 너비·높이·색상 유형(RGBA, RGB)·투명 픽셀 유무를 받아 유효한 PNG 바이트를 만든다(Node `zlib`로 IDAT 압축, CRC 계산 포함). 잘린 파일과 시그니처가 틀린 파일을 만드는 함수도 둔다
+- [x] T005 [P] `src/main/index.ts` 맨 위(앱 `ready` 이전)에 환경 변수 `KAKARU_USER_DATA`가 있으면 `app.setPath('userData', 값)`으로 사용자 데이터 폴더를 바꾸는 코드를 추가한다(E2E·단위 테스트 격리용, research R7)
+- [x] T006 [P] `tests/unit/characters-store.test.ts`: 임시 폴더를 루트로 쓰는 `CharacterStore` 테스트. 빈 상태 로드, 캐릭터 추가 후 `characters/<id>/walk.png`·`idle.png` 생성과 `settings.json` 기록, 재로드 시 유지, `id`가 `^[a-z0-9]{8,32}$`가 아니면 거부(경로 조작 방지), 쓰기 후 `settings.json.tmp`가 남지 않음, 이미지 저장 중 실패하면 만든 폴더를 지움, `settings.json`이 깨졌으면 `settings.json.broken-<ms>`로 보존하고 빈 상태로 시작, `version` 불일치도 같은 처리
+- [x] T007 `src/main/characters-store.ts`에 `CharacterStore`(루트 경로를 생성자 인자로 받는 Electron 비의존 클래스)를 구현한다(T002, T006 의존): `load()`, `list()`, `add(meta, walkBytes, idleBytes)`, 원자적 쓰기(임시 파일에 쓴 뒤 `rename`). 불변식을 코드로 보장 — "`activeId`가 `null`이 아니면 `characters`에 그 id가 있어야 하고 이미지 파일이 읽혀야 한다. 어긋나면 `activeId`를 `null`로 되돌리고 `problem`을 설정한다"
 
 **Checkpoint**: 기반 완료 — 사용자 스토리 구현 시작 가능
 
@@ -65,9 +65,9 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 ### Implementation for User Story 1
 
 - [ ] T009 [US1] 스파이크(임시 코드, macOS): 오버레이 창에 `webContents.on('context-menu', …)`로 `Menu.popup()`을 연결해 research R1·R2의 두 가정을 확인한다 — `focusable: false` 오버레이에서 `context-menu`가 발생하는지, 최상위 레벨 오버레이 위·전체 화면 앱 위에서 네이티브 메뉴가 보이는지. 결과를 `research.md`의 R1·R2 "검증 필요" 항목에 기록한다. 이벤트가 발생하지 않으면 렌더러의 `contextmenu` DOM 이벤트를 IPC로 알리는 방식으로 plan을 수정한다
-- [ ] T010 [P] [US1] `src/renderer/settings.html`과 `src/renderer/settings.ts`와 `src/preload/settings.ts`에 설정 창 골격을 만든다: 제목 "캐릭터 설정"만 보이는 빈 페이지(이후 스토리에서 채움), preload는 빈 `kakaruSettings` 객체만 노출, CSP는 `default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:`
+- [x] T010 [P] [US1] `src/renderer/settings.html`과 `src/renderer/settings.ts`와 `src/preload/settings.ts`에 설정 창 골격을 만든다: 제목 "캐릭터 설정"만 보이는 빈 페이지(이후 스토리에서 채움), preload는 빈 `kakaruSettings` 객체만 노출, CSP는 `default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data: blob:`
 - [ ] T011 [US1] `src/main/settings-window.ts`에 `openSettingsWindow()`를 구현한다(T010 의존): 프레임이 있는 포커스 가능 `BrowserWindow`(약 720×560, 크기 고정, 제목 "캐릭터 설정", `contextIsolation: true`, `sandbox: true`, preload는 `out/preload/settings.js`), 이미 열려 있으면 새로 만들지 않고 앞으로 가져옴, 닫히면 파괴. 개발 서버에서는 `${ELECTRON_RENDERER_URL}/settings.html`, 빌드 후에는 `out/renderer/settings.html`을 로드한다. 앱 인자 `--open-settings`가 있으면 시작 직후 연다
-- [ ] T012 [US1] `src/main/context-menu.ts`를 구현한다(T008, T009, T011 의존): 메뉴 컨트롤러(T008의 포트 구조)와 Electron 연결(`Menu.buildFromTemplate`로 "캐릭터 설정" 항목 하나, `popup({ window, callback })`). 메뉴를 열 때 `simulation.setUserControlled(true)`, 닫힘 콜백에서 `false`를 호출한다
+- [ ] T012 [US1] `src/shared/context-menu-controller.ts`(순수 메뉴 상태 로직)와 `src/main/context-menu.ts`(Electron 연결)를 구현한다(T008, T009, T011 의존): 메뉴 컨트롤러와 Electron 연결(`Menu.buildFromTemplate`로 "캐릭터 설정" 항목 하나, `popup({ window, callback })`). 메뉴를 열 때 `simulation.setUserControlled(true)`, 닫힘 콜백에서 `false`를 호출한다
 - [ ] T013 [US1] `src/main/overlay.ts`의 오버레이 창 생성 시 `webContents`의 `context-menu` 이벤트를 메뉴 컨트롤러에 연결하고, `src/main/index.ts`에서 컨트롤러를 만들어 `openSettingsWindow`와 `setUserControlled`를 주입한다(T012 의존)
 - [ ] T014 [US1] macOS에서 quickstart.md 수동 #1~#7을 실행하고 결과를 `tests/manual/results.md`의 002 섹션에 기록한다
 

@@ -1,6 +1,14 @@
+import type { Appearance, ValidationError } from './characters'
 import type { BehaviorState, Heading } from './types'
 
 export const CHANNEL_CHARACTER_UPDATE = 'character:update'
+export const CHANNEL_APPEARANCE = 'character:appearance'
+export const CHANNEL_CHARACTERS_LIST = 'characters:list'
+export const CHANNEL_CHARACTERS_VALIDATE = 'characters:validate'
+export const CHANNEL_CHARACTERS_REGISTER = 'characters:register'
+export const CHANNEL_CHARACTERS_APPLY = 'characters:apply'
+export const CHANNEL_CHARACTERS_DELETE = 'characters:delete'
+export const CHANNEL_CHARACTERS_CHANGED = 'characters:changed'
 
 /**
  * 디스플레이별 오버레이 창에 보내는 캐릭터 상태. x, y는 창 로컬 좌표(DIP).
@@ -21,4 +29,53 @@ export type CharacterUpdate = {
 /** preload가 렌더러에 노출하는 API */
 export type KakaruApi = {
   onCharacterUpdate(callback: (update: CharacterUpdate) => void): void
+  onAppearance(callback: (appearance: Appearance) => void): void
+}
+
+export type { Appearance, ValidationError }
+
+export type CharacterSummary = {
+  /** null = 기본 캐릭터 */
+  id: string | null
+  name: string
+  frames: number
+  frameSize: number
+  /** 목록 썸네일용 data: URL. 기본 캐릭터는 빈 문자열(설정 화면이 번들의 기본 이미지로 대체) */
+  idleUrl: string
+  builtin: boolean
+  /** 이미지가 손상·누락된 경우 이유 */
+  problem?: string
+}
+
+export type ListResult = {
+  characters: CharacterSummary[]
+  activeId: string | null
+  /** 활성 캐릭터를 읽을 수 없어 기본으로 되돌린 경우 등 */
+  notice?: string
+}
+
+export type RegisterInput = {
+  name: string
+  frames: number
+  /** 걷기 이미지 파일 내용 */
+  walk: ArrayBuffer
+  /** 정지 이미지 파일 내용 */
+  idle: ArrayBuffer
+}
+
+export type ValidationResult = { ok: true; frameSize: number } | { ok: false; errors: ValidationError[] }
+
+export type RegisterResult = { ok: true; id: string } | { ok: false; errors: ValidationError[] }
+
+export type SimpleResult = { ok: true } | { ok: false; message: string }
+
+/** preload가 설정 창에 노출하는 API */
+export type KakaruSettingsApi = {
+  list(): Promise<ListResult>
+  validate(input: RegisterInput): Promise<ValidationResult>
+  register(input: RegisterInput): Promise<RegisterResult>
+  /** id가 null이면 기본 캐릭터로 되돌린다 */
+  apply(id: string | null): Promise<SimpleResult>
+  delete(id: string): Promise<SimpleResult>
+  onChanged(callback: () => void): void
 }

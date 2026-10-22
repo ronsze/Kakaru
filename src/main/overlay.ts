@@ -2,9 +2,16 @@ import { join } from 'node:path'
 import { BrowserWindow, screen, type Display } from 'electron'
 import { getPlatformAdapter } from './platform'
 
+export type OverlayOptions = {
+  /** 오버레이 창을 새로 만들 때마다 호출된다 (우클릭 메뉴 연결 등) */
+  onCreate?: (win: BrowserWindow) => void
+}
+
 /** 디스플레이마다 하나씩 두는 투명 오버레이 창을 관리한다. */
 export class OverlayManager {
   private readonly windows = new Map<number, BrowserWindow>()
+
+  constructor(private readonly options: OverlayOptions = {}) {}
 
   /** 현재 연결된 디스플레이에 맞춰 창을 만들고, 사라진 디스플레이의 창은 닫는다. */
   sync(): void {
@@ -58,6 +65,7 @@ export class OverlayManager {
     if (devUrl) void win.loadURL(devUrl)
     else void win.loadFile(join(__dirname, '../renderer/index.html'))
     win.once('ready-to-show', () => win.showInactive())
+    this.options.onCreate?.(win)
     return win
   }
 }
