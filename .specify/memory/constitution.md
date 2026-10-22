@@ -1,50 +1,56 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Kakaru Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. 데스크탑 컴패니언 우선
+Kakaru는 데스크탑 화면 위에서 캐릭터가 돌아다니며 사용자와 상호작용하는 앱이다.
+모든 기능은 "화면 위의 캐릭터"라는 정체성에 종속되며, 이 정체성과 무관한 기능은
+스펙에 포함하지 않는다(MUST NOT). 앱은 사용자의 데스크탑 작업을 방해하지 않아야 한다(MUST).
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. 핵심 상호작용 3종 보장
+다음 세 가지는 항상 동작해야 하는 핵심 계약이다(MUST).
+- **자율 이동**: 캐릭터는 사용자 입력 없이 스스로 화면을 돌아다닌다.
+- **롱프레스 이동**: 캐릭터를 롱프레스하면 드래그해 원하는 위치로 옮길 수 있다.
+- **우클릭 메뉴**: 캐릭터를 우클릭하면 메뉴가 열리고, 앱의 기능은 이 메뉴를 통해 사용한다.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+새 기능은 이 세 상호작용을 깨뜨리거나 지연시켜서는 안 된다(MUST NOT).
+근거: 이 세 가지가 제품의 최소 가치이므로 회귀를 허용하지 않는다.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### III. 비침습성
+캐릭터 창은 사용자의 다른 앱 조작을 가로막지 않아야 한다(MUST). 캐릭터가 없는 영역의
+클릭은 아래 창으로 전달되어야 하고, 상시 실행 시 CPU·메모리 사용은 눈에 띄지 않을
+수준으로 유지한다. 구체적 수치 기준은 스펙 단계에서 정의한다.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### IV. 단순성 (YAGNI)
+현재 스펙이 요구하지 않는 추상화·설정·확장 지점은 만들지 않는다(MUST NOT).
+복잡도를 더하는 설계는 plan 문서에서 필요성을 정당화해야 한다(MUST).
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### V. 검증 가능한 스펙
+모든 기능 스펙은 사용자 관점에서 검증 가능한 수용 조건을 가져야 한다(MUST).
+상호작용 기능은 입력(자율·롱프레스·우클릭)과 기대 결과로 서술한다.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+## 기술 및 플랫폼 제약
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- 지원 OS는 macOS와 Windows이다. 모든 핵심 상호작용(Principle II)은 두 OS에서 동일하게
+  동작해야 한다(MUST). OS 전용 구현은 공통 인터페이스 뒤에 두고, 한 OS에서만 되는 기능은
+  스펙에 그 사실을 명시한다.
+- TODO(TECH_STACK): 언어·프레임워크는 미정이며, 결정 시 이 섹션에 기록한다.
+- TODO(TEST_POLICY): 테스트 방식·아키텍처 선호·코드/문서 언어 규칙은 추후 정의한다.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## 개발 워크플로
+
+- 기능 개발은 Spec Kit 흐름(specify → plan → tasks → implement)을 따른다.
+- 커밋 작성자는 이 저장소의 로컬 git 설정(`ronsze`)을 사용한다.
+- plan 단계에서 Core Principles 위반 여부를 점검하고, 위반 시 정당화를 기록한다.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+이 헌장은 다른 개발 관행보다 우선한다. 개정은 변경 내용과 사유를 문서화해 이 파일에
+반영하는 방식으로 하며, 버전은 다음 규칙으로 올린다.
+- MAJOR: 원칙의 제거 또는 비호환적 재정의
+- MINOR: 원칙·섹션 추가 또는 지침의 실질적 확장 (예: 기술 스택 확정)
+- PATCH: 문구 명확화·오탈자 수정
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+plan 검토 시 헌장 준수 여부를 확인한다.
+
+**Version**: 1.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
