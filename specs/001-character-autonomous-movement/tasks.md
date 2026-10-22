@@ -133,7 +133,7 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 **Purpose**: 여러 스토리에 걸친 마무리
 
 - [x] T036 [P] 저장소 루트에 한국어 `README.md` 작성: 프로젝트 소개, 실행(`npm run dev`)·테스트(`npm test`, `npm run test:e2e`) 방법, 지원 OS
-- [ ] T037 macOS와 Windows에서 유휴 평균 CPU와 메모리를 측정해 spec의 SC-006·SC-007 기준(CPU 3% 이하, 메모리 300MB 이하, 30fps 이상)과 비교하고 `tests/manual/results.md`에 기록
+- [ ] T037 macOS와 Windows에서 유휴 평균 CPU와 메모리를 측정해 spec의 SC-006·SC-007 기준(CPU 10% 이하, 메모리 300MB 이하, 30fps 이상)과 비교하고 `tests/manual/results.md`에 기록
 - [ ] T038 quickstart.md 전체 절차(자동 + 수동 #1~#9)를 macOS·Windows에서 최종 검증하고, T032의 전체 화면 앱 위 표시 결과를 spec Edge Cases에 OS별 차이로 반영한다(헌장: 한 OS에서만 되는 동작은 스펙에 명시)
 
 ---

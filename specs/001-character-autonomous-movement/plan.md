@@ -25,7 +25,7 @@
 
 **Project Type**: desktop-app
 
-**Performance Goals**: 유휴 평균 CPU 3% 이하, 렌더링 30fps 이상(가능하면 60fps), 사용자 조작 후 0.5초 안에 자율 이동 정지 (수치는 제안값이며 스펙 보완 후보 — research R9)
+**Performance Goals**: 유휴 평균 CPU 10% 이하, 렌더링 30fps 이상, 사용자 조작 후 0.5초 안에 자율 이동 정지 (수치는 제안값이며 스펙 보완 후보 — research R9)
 
 **Constraints**: 메모리 300MB 이하(제안값), 클릭 통과로 다른 앱 입력을 가로채지 않음, 두 OS 동일 동작
 
