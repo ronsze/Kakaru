@@ -128,7 +128,7 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 **Purpose**: 여러 스토리에 걸친 마무리
 
 - [x] T031 [P] `README.md`에 메뉴와 캐릭터 설정 사용법, 이미지 규격(PNG, 프레임 한 변 64~512px, 프레임 수 2~32, 5MB 이하, 투명 배경, 오른쪽을 보는 한 방향), 개발·테스트용 환경 변수 `KAKARU_USER_DATA`와 앱 인자 `--open-settings`를 추가한다
-- [ ] T032 macOS에서 설정 창을 닫은 유휴 상태의 CPU·메모리를 001과 같은 방법으로 측정해 SC-006(CPU 10% 이하, 메모리 300MB 이하) 유지 여부를 `tests/manual/results.md`에 기록한다(research R10)
+- [x] T032 macOS에서 설정 창을 닫은 유휴 상태의 CPU·메모리를 001과 같은 방법으로 측정해 SC-006(CPU 10% 이하, 메모리 300MB 이하) 유지 여부를 `tests/manual/results.md`에 기록한다(research R10)
 - [ ] T033 quickstart.md 전체 절차(자동 + 수동 #1~#13)를 macOS에서 최종 검증하고, Windows 검증과 멀티 모니터·절전 상태에서의 메뉴 동작이 후속임을 spec Assumptions·`tests/manual/results.md`에 명시한다
 
 ---
