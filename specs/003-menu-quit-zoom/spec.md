@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Implemented (확대·축소 수치 확정)
+**Status**: Verified on macOS (Windows는 후속)
 
 **Input**: User description: "종료 메뉴 항목 바로 추가, 확대·축소 메뉴도 각각 추가(캐릭터를 확대·축소하는 기능). 한 번에 얼마나 변하고 최대/최소값은 어떻게 할지는 해보면서 정리"
 
