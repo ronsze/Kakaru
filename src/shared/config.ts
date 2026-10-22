@@ -17,6 +17,8 @@ export const config = {
    * 배율은 소수 둘째 자리로 반올림해 저장한다.
    */
   scale: { default: 1, step: 0.2, min: 0.5, max: 3 },
+  /** 앱을 실행하고 이만큼(ms) 뒤에 인사한다 (오버레이 창이 뜨고 캐릭터가 보인 다음) */
+  greetingDelayMs: 1500,
   /** 캐릭터를 이만큼(ms) 계속 잡고 있으면 발버둥 모션과 "오래 잡혔을 때" 대사가 시작된다 */
   struggleAfterMs: 5000,
   /**

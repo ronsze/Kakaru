@@ -237,7 +237,13 @@ export class CharacterStore {
     if (id === null) {
       try {
         const raw: unknown = JSON.parse(readFileSync(join(this.root, DEFAULT_LINES_FILE), 'utf8'))
-        if (isLinesFile(raw)) return sanitizeLines(raw)
+        if (isLinesFile(raw)) {
+          const lines = sanitizeLines(raw)
+          // 인사 분류가 생기기 전에 저장한 편집본은 인사 항목이 없으므로 내장 인사를 쓴다
+          const saved = (raw as { lines?: Record<string, unknown> }).lines
+          if (saved && saved.greeting === undefined) lines.greeting = DEFAULT_LINES.greeting
+          return lines
+        }
       } catch {
         /* 없거나 깨졌으면 내장 문장 */
       }
@@ -280,6 +286,10 @@ export class CharacterStore {
   /** 기본 캐릭터의 편집본을 지워 내장 문장으로 되돌린다 */
   resetDefaultLines(): void {
     rmSync(join(this.root, DEFAULT_LINES_FILE), { force: true })
+  }
+
+  readLinesFileText(id: string): string {
+    return readFileSync(join(this.characterDir(id), 'lines.json'), 'utf8')
   }
 
   hasLinesFile(id: string): boolean {

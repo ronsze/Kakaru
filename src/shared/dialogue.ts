@@ -1,14 +1,14 @@
 import { config } from './config'
 
 /** 대화셋 분류. 모든 캐릭터가 같은 분류를 쓰고, 문장만 캐릭터마다 다르다 */
-export const DIALOGUE_CATEGORIES = ['normal', 'grabbed', 'struggling'] as const
+export const DIALOGUE_CATEGORIES = ['greeting', 'normal', 'grabbed', 'struggling'] as const
 export type Category = (typeof DIALOGUE_CATEGORIES)[number]
 
 /** 한 캐릭터의 대화셋. 모든 분류 키가 항상 있고 비어 있을 수 있다 */
 export type Lines = Record<Category, string[]>
 
 export function emptyLines(): Lines {
-  return { normal: [], grabbed: [], struggling: [] }
+  return { greeting: [], normal: [], grabbed: [], struggling: [] }
 }
 
 /**
@@ -51,6 +51,7 @@ export function pickLine(
 
 /** 기본 캐릭터(폴리곤 고양이)의 대화셋 */
 export const DEFAULT_LINES: Lines = {
+  greeting: ['안녕! 오늘도 잘 부탁해냥.', '왔구나, 반가워!', '나 왔어! 잘 지냈어?'],
   normal: [
     '오늘도 어슬렁어슬렁.',
     '어디 갈까?',

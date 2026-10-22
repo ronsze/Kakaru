@@ -215,13 +215,35 @@ export class CharacterService {
     for (const sample of samples) {
       if (!this.store.isSeeded(sample.key)) continue
       const character = this.store.list().find((c) => c.name === sample.name)
-      if (!character || this.store.hasLinesFile(character.id)) continue
+      if (!character) continue
       const lines = readOptional(join(sample.dir, 'lines.json'))
       if (!lines) continue
-      this.store.writeLinesFile(character.id, lines)
-      filled++
+      if (!this.store.hasLinesFile(character.id)) {
+        this.store.writeLinesFile(character.id, lines)
+        filled++
+      } else if (this.addMissingGreeting(character.id, lines)) {
+        filled++
+      }
     }
     return filled
+  }
+
+  /**
+   * 인사 분류가 생기기 전에 설치한 샘플의 lines.json에는 인사 항목이 없다. 그 경우에만 샘플 원본의 인사를
+   * 넣고, 사용자가 이미 저장한(인사 항목이 있는) 파일은 건드리지 않는다.
+   */
+  private addMissingGreeting(id: string, original: Buffer): boolean {
+    try {
+      const installed = JSON.parse(this.store.readLinesFileText(id))
+      const source = JSON.parse(original.toString('utf8'))
+      if (installed?.version !== 1 || typeof installed.lines !== 'object' || installed.lines === null) return false
+      if (installed.lines.greeting !== undefined || !Array.isArray(source?.lines?.greeting)) return false
+      installed.lines.greeting = source.lines.greeting
+      this.store.writeLinesFile(id, Buffer.from(JSON.stringify(installed, null, 2)))
+      return true
+    } catch {
+      return false
+    }
   }
 
   /** 활성 캐릭터의 대화셋 */

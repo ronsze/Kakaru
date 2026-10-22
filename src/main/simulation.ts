@@ -25,6 +25,8 @@ let speaker: Speaker
 /** 잡기를 시작한 시각과 "오래 잡혔을 때" 대사를 이미 했는지 */
 let grabStartedAt = 0
 let struggled = false
+/** 앱을 실행한 뒤 인사를 이미 했는지 */
+let greeted = false
 let menuOpen = false
 let area: WalkableArea
 let displayIds: number[] = []
@@ -98,6 +100,11 @@ function tick(): void {
   lastTime = t
   clock += dt * 1000
   speaker.update(clock, { muted: menuOpen || drag.active })
+  if (!greeted && clock >= config.greetingDelayMs) {
+    greeted = true
+    // 그때 메뉴가 열려 있거나 잡혀 있으면 인사는 건너뛴다
+    if (!menuOpen && !drag.active) speaker.say('greeting', clock)
+  }
   if (drag.active && !struggled && clock - grabStartedAt >= config.struggleAfterMs) {
     struggled = true
     speaker.say('struggling', clock)

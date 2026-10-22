@@ -135,3 +135,26 @@ describe('Speaker.say / 표시 시간', () => {
     expect(speaker.current(10_000)?.text).toBe('새 말')
   })
 })
+
+describe('Speaker 인사', () => {
+  it('say("greeting")은 greeting 분류의 문장을 말한다', () => {
+    const { speaker } = create(lines({ greeting: ['안녕!'], normal: ['평소'] }))
+    expect(speaker.say('greeting', 0)).toBe(true)
+    expect(speaker.current(0)?.text).toBe('안녕!')
+  })
+
+  it('인사 문장이 없으면 아무것도 말하지 않는다', () => {
+    const { speaker } = create(lines({ normal: ['평소'] }))
+    expect(speaker.say('greeting', 0)).toBe(false)
+    expect(speaker.current(0)).toBeNull()
+  })
+
+  it('평소 혼잣말은 인사 문장을 고르지 않는다', () => {
+    const { speaker } = create(lines({ greeting: ['안녕!'], normal: ['평소'] }))
+    for (let t = 0; t < 5 * 60_000; t += 100) {
+      speaker.update(t, { muted: false })
+      const s = speaker.current(t)
+      if (s) expect(s.text).toBe('평소')
+    }
+  })
+})

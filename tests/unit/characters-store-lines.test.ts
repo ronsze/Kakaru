@@ -37,7 +37,7 @@ describe('CharacterStore.readLines', () => {
     store.add(meta('abcd1234'), png, png)
     writeLines('abcd1234', JSON.stringify({ version: 1, lines: { normal: ['안녕', '  ', 3] } }))
     store.setActive('abcd1234')
-    expect(store.readLines()).toEqual({ normal: ['안녕'], grabbed: [], struggling: [] })
+    expect(store.readLines()).toEqual({ greeting: [], normal: ['안녕'], grabbed: [], struggling: [] })
   })
 
   it('lines.json이 없으면 모든 분류가 비어 있고 기본 문장으로 대체하지 않는다 (FR-013)', () => {

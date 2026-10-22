@@ -224,6 +224,23 @@ describe('CharacterService.installSamples', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
+  it('인사 항목이 없는 설치된 샘플에는 원본 인사를 넣고, 있는 파일은 건드리지 않는다', () => {
+    const { service, store } = setup()
+    const dir = sampleDir()
+    writeFileSync(join(dir, 'lines.json'), JSON.stringify({ version: 1, lines: { greeting: ['원본 인사'], normal: ['원본 평소'] } }))
+    service.installSamples([sample(dir)])
+    const id = service.list().characters[1].id as string
+    // 인사 분류 이전에 설치된 상태를 만든다: 인사 항목이 없고 사용자가 평소 문장을 고친 파일
+    store.writeLinesFile(id, Buffer.from(JSON.stringify({ version: 1, lines: { normal: ['내가 고친 평소'] } })))
+    expect(service.backfillSampleLines([sample(dir)])).toBe(1)
+    service.apply(id)
+    expect(store.readLines().greeting).toEqual(['원본 인사'])
+    expect(store.readLines().normal).toEqual(['내가 고친 평소'])
+    // 이제 인사 항목이 있으므로 다시 호출해도 바꾸지 않는다
+    expect(service.backfillSampleLines([sample(dir)])).toBe(0)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
   it('설치된 적 없는 샘플은 채우지 않는다', () => {
     const { service } = setup()
     const dir = sampleDir()
@@ -238,7 +255,7 @@ describe('CharacterService.installSamples', () => {
     service.installSamples([sample(dir)])
     store.add({ id: 'user0001', name: '내 캐릭터', frames: 4, frameSize: 200, createdAt: 1 }, Buffer.from([0]), Buffer.from([0]))
     service.apply('user0001')
-    expect(store.readLines()).toEqual({ normal: [], grabbed: [], struggling: [] })
+    expect(store.readLines()).toEqual({ greeting: [], normal: [], grabbed: [], struggling: [] })
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -332,7 +349,7 @@ describe('CharacterService 대사 편집 (006)', () => {
     const r = service.saveLines('user0001', input('a'.repeat(61)))
     expect(r).toMatchObject({ ok: false })
     expect((r as { issues: unknown[] }).issues).toHaveLength(1)
-    expect(store.readLinesOf('user0001')).toEqual({ normal: [], grabbed: [], struggling: [] })
+    expect(store.readLinesOf('user0001')).toEqual({ greeting: [], normal: [], grabbed: [], struggling: [] })
   })
 
   it('saveLines: 존재하지 않는 캐릭터와 잘못된 입력 모양을 거부한다 (FR-011)', () => {
@@ -375,7 +392,7 @@ describe('CharacterService 대사 편집 (006)', () => {
     const { service, store } = withUser()
     service.saveLines('user0001', input('a'))
     expect(service.restoreLines('user0001')).toMatchObject({ ok: true })
-    expect(store.readLinesOf('user0001')).toEqual({ normal: [], grabbed: [], struggling: [] })
+    expect(store.readLinesOf('user0001')).toEqual({ greeting: [], normal: [], grabbed: [], struggling: [] })
   })
 
   it('restoreLines: 존재하지 않는 캐릭터는 거부한다', () => {

@@ -34,6 +34,19 @@ const release = (page: Page) =>
     document.dispatchEvent(new PointerEvent('pointerup', { button: 0, pointerId: 1, bubbles: true }))
   )
 
+test('앱을 실행하면 곧 인사 말풍선이 나타난다', async () => {
+  const app = await launch()
+  try {
+    await app.firstWindow()
+    const pages = app.windows()
+    await expect
+      .poll(async () => DEFAULT_LINES.greeting.includes((await bubbleTexts(pages))[0]), { timeout: 6000 })
+      .toBe(true)
+  } finally {
+    await app.close()
+  }
+})
+
 test('잡으면 "잡혔을 때" 말풍선이 나타나고, 5초 넘게 잡으면 "오래 잡혔을 때"로 바뀐다 (FR-010)', async () => {
   const app = await launch()
   try {

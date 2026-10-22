@@ -5,6 +5,13 @@ import { seededRandom } from './helpers'
 
 const file = (lines: unknown) => ({ version: 1, lines })
 
+describe('sanitizeLines 인사 분류', () => {
+  it('greeting 분류를 읽고, 없으면 빈 목록이다', () => {
+    expect(sanitizeLines(file({ greeting: ['안녕'] })).greeting).toEqual(['안녕'])
+    expect(sanitizeLines(file({ normal: ['a'] })).greeting).toEqual([])
+  })
+})
+
 describe('sanitizeLines', () => {
   it('모든 분류 키를 항상 돌려준다', () => {
     const lines = sanitizeLines(file({ normal: ['안녕'] }))

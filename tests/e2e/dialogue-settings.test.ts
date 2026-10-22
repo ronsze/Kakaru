@@ -67,7 +67,7 @@ test.describe('대사 설정 화면 (006)', () => {
     await register(page, '말하는 친구')
     await item(page, '말하는 친구').locator('.btn-lines').click()
     await expect(page.locator('#lines-title')).toContainText('말하는 친구')
-    for (const c of ['normal', 'grabbed', 'struggling']) await expect(page.locator(`#lines-${c}`)).toHaveValue('')
+    for (const c of ['greeting', 'normal', 'grabbed', 'struggling']) await expect(page.locator(`#lines-${c}`)).toHaveValue('')
 
     await page.fill('#lines-grabbed', '저장한 반응 하나\n저장한 반응 둘')
     await page.click('#lines-save')
@@ -156,6 +156,7 @@ test.describe('대사 설정 화면 (006)', () => {
 
   test('기본 캐릭터를 고쳐도 처음 문장으로 되돌릴 수 있다 (US3)', async () => {
     await item(page, '기본').first().locator('.btn-lines').click()
+    await expect(page.locator('#lines-greeting')).toHaveValue(DEFAULT_LINES.greeting.join('\n'))
     await expect(page.locator('#lines-normal')).toHaveValue(DEFAULT_LINES.normal.join('\n'))
     await expect(page.locator('#lines-restore')).toBeDisabled()
 

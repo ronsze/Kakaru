@@ -107,3 +107,19 @@ describe('기본 캐릭터 편집본', () => {
     expect(store.readLines()).toEqual(emptyLines())
   })
 })
+
+describe('인사 분류가 생기기 전의 기본 캐릭터 편집본', () => {
+  it('greeting 항목이 없는 편집본은 내장 인사를 쓰고 나머지는 편집본을 따른다', () => {
+    const store = create()
+    writeFileSync(join(root, 'default-lines.json'), JSON.stringify({ version: 1, lines: { normal: ['옛 편집'] } }))
+    const lines = store.readLinesOf(null)
+    expect(lines.normal).toEqual(['옛 편집'])
+    expect(lines.greeting).toEqual(DEFAULT_LINES.greeting)
+  })
+
+  it('greeting 항목이 비어 있으면(저장한 값) 인사하지 않는다', () => {
+    const store = create()
+    writeFileSync(join(root, 'default-lines.json'), JSON.stringify({ version: 1, lines: { greeting: [], normal: ['a'] } }))
+    expect(store.readLinesOf(null).greeting).toEqual([])
+  })
+})
