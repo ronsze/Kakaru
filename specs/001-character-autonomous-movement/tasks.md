@@ -71,7 +71,7 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 - [x] T014 [P] [US1] `src/shared/area.ts`에 `WalkableArea` 구현: `displays: Rect[]`, `contains(point)`, `containsSegment(a, b)`, `clamp(point)`, `displayAt(point)` (data-model.md 연산 정의대로)
 - [x] T015 [US1] `src/shared/behavior.ts`에 `MovementEngine` 구현(T014 의존): `tick(now, dt): Character`, `setWalkableArea(area)`. 검증 규칙을 코드로 보장 — "`position`은 항상 `WalkableArea` 안에 있어야 한다", "`state === Walking`이면 `target !== null`이고, 현재 위치→`target` 직선이 `WalkableArea` 안에 있어야 한다", "`state !== Walking`이면 `velocity`는 0이다". 직선 경로가 막히면 다른 목표를 다시 고르고, 직전 이동 방향과 다른 쪽을 우선한다. 난수원은 시드 가능한 함수(`random: () => number`)를 생성자 인자로 받고, 시각은 `tick(now, dt)` 인자로만 받아 테스트가 결정적이다
-- [x] T016 [P] [US1] `src/renderer/index.html`과 `src/renderer/draw.ts`: 배경이 완전히 투명한 Canvas 2D, `onCharacterUpdate`를 받아 `visible`이면 `(x, y)`에 폴리곤으로 그린 캐릭터(몸·머리·다리·눈, research R11)를 `heading`에 따라 좌우 반전해 그리고 아니면 비움. `state`가 Walking이면 다리·몸 좌표를 시간에 따라 흔들고 Idle/UserControlled이면 정지 자세를 한 번만 그린다. 렌더링 비용을 줄이기 위해 캐릭터 크기(200×200)의 작은 캔버스를 `transform`으로 옮기고, 이동 중 위치는 IPC로 받은 속도(`vx`, `vy`)로 이어서 계산한다. 외부 이미지 파일은 사용하지 않는다
+- [x] T016 [P] [US1] [T039~T041에서 이미지 리소스 방식으로 대체됨] `src/renderer/index.html`과 `src/renderer/draw.ts`: 배경이 완전히 투명한 Canvas 2D, `onCharacterUpdate`를 받아 `visible`이면 `(x, y)`에 폴리곤으로 그린 캐릭터(몸·머리·다리·눈, research R11)를 `heading`에 따라 좌우 반전해 그리고 아니면 비움. `state`가 Walking이면 다리·몸 좌표를 시간에 따라 흔들고 Idle/UserControlled이면 정지 자세를 한 번만 그린다. 렌더링 비용을 줄이기 위해 캐릭터 크기(200×200)의 작은 캔버스를 `transform`으로 옮기고, 이동 중 위치는 IPC로 받은 속도(`vx`, `vy`)로 이어서 계산한다. 외부 이미지 파일은 사용하지 않는다
 - [x] T017 [US1] `src/main/overlay.ts`: 디스플레이마다 `BrowserWindow`를 만들어 해당 `bounds`에 맞춤. 옵션은 `transparent: true`, `frame: false`, `alwaysOnTop: true`, `skipTaskbar: true`, `focusable: false`, `hasShadow: false`, `webPreferences`에 preload 지정·`contextIsolation: true`. 생성 직후 `setIgnoreMouseEvents(true)`로 기본 클릭 통과 상태 유지. `displayId → window` 맵 제공
 - [x] T018 [US1] `src/main/simulation.ts`: 60Hz 틱 루프. `screen.getAllDisplays()`의 `bounds`로 `WalkableArea` 구성, `MovementEngine.tick` 호출, `area.displayAt(position)`에 해당하는 창에는 `visible: true`와 창 로컬 좌표, 나머지 창에는 `visible: false`로 `character:update` 전송. 히트 테스트가 쓸 수 있도록 현재 캐릭터와 이동 가능 영역을 반환하는 `getCharacter()`를 export한다
 - [x] T019 [US1] `src/main/index.ts`에서 `overlay`와 `simulation`을 연결해 앱 시작 시 오버레이 생성 및 시뮬레이션 시작(T010, T017, T018 의존)
@@ -135,6 +135,18 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 - [x] T036 [P] 저장소 루트에 한국어 `README.md` 작성: 프로젝트 소개, 실행(`npm run dev`)·테스트(`npm test`, `npm run test:e2e`) 방법, 지원 OS
 - [x] T037 [범위 축소: macOS만 측정(평균 약 9.6%, 약 150MB), Windows는 후속] macOS와 Windows에서 유휴 평균 CPU와 메모리를 측정해 spec의 SC-006·SC-007 기준(CPU 10% 이하, 메모리 300MB 이하, 30fps 이상)과 비교하고 `tests/manual/results.md`에 기록
 - [x] T038 [범위 축소: macOS 결과 반영, 후속 검증 범위를 spec Assumptions에 명시] quickstart.md 전체 절차(자동 + 수동 #1~#9)를 macOS·Windows에서 최종 검증하고, T032의 전체 화면 앱 위 표시 결과를 spec Edge Cases에 OS별 차이로 반영한다(헌장: 한 OS에서만 되는 동작은 스펙에 명시)
+
+---
+
+## Phase 7: 캐릭터 이미지 리소스 전환 (후속 변경)
+
+**Purpose**: 코드로 그리던 폴리곤 캐릭터를 이미지 리소스(투명 PNG) 방식으로 바꾼다. 임시 이미지는 기존 폴리곤 모습을 캡처해 만든다 (research R11).
+
+- [x] T039 `scripts/generate-placeholder-sprites.cjs`로 기존 폴리곤 캐릭터를 캡처해 `src/renderer/assets/walk.png`(200×200 프레임 8장 가로 시트, 1600×200)와 `src/renderer/assets/idle.png`(200×200 1장)를 생성한다. 오른쪽을 보는 한 방향만 만든다
+- [x] T040 `src/renderer/index.html`과 `src/renderer/draw.ts`를 `<img>` + CSS 방식으로 교체한다: 걷기는 `transform: translateX`의 `steps(8)` 애니메이션(0.56s), 정지는 `idle.png`, 왼쪽은 `scaleX(-1)`, 이동은 속도로 계산한 목표까지의 `transform` transition(1.2s, 메인의 1초 보정 주기보다 약간 길게). 모습(걷기/정지/방향)이 바뀔 때만 클래스를 갱신해 보정 때마다 애니메이션이 재시작하지 않게 한다. CSP에 `img-src 'self' data:` 추가
+- [x] T041 spec Assumptions, research R11, plan(구조·Technical Context)을 이미지 리소스 방식으로 갱신한다
+- [x] T042 macOS에서 CPU·메모리를 다시 측정해 `tests/manual/results.md`에 기록한다
+
 
 ---
 

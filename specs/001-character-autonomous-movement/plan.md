@@ -15,7 +15,7 @@
 
 **Language/Version**: TypeScript 5.x, Node.js LTS, Electron(최신 안정 버전)
 
-**Primary Dependencies**: Electron, electron-vite(Vite), Canvas 2D(렌더링, 캐릭터는 코드로 그리는 폴리곤 — research R11). 3D·물리(Three.js, Rapier)는 추후 도입이라 이번에는 추가하지 않는다.
+**Primary Dependencies**: Electron, electron-vite(Vite), 이미지 리소스(투명 PNG)와 CSS 애니메이션(렌더링, 캐릭터 규격은 research R11). 3D·물리(Three.js, Rapier)는 추후 도입이라 이번에는 추가하지 않는다.
 
 **Storage**: N/A (메모리 상태만 사용, 설정 영속화 없음)
 
@@ -40,7 +40,7 @@
 | I. 데스크탑 컴패니언 우선 | 통과 | 기능 전체가 화면 위 캐릭터의 이동이며 무관한 기능을 넣지 않는다 |
 | II. 핵심 상호작용 3종 보장 | 통과 | 자율 이동을 구현하고, `UserControlled` 상태로 롱프레스·우클릭 메뉴와 공존하는 구조를 마련한다 (FR-006) |
 | III. 비침습성 | 통과(수치 보완 필요) | 기본 클릭 통과 + 커서 폴링으로 구현(R2). 수치 기준은 스펙에 없어 plan에서 제안(R9) |
-| IV. 단순성(YAGNI) | 통과 | Canvas 2D, 설정·영속화·3D 없음. OS 어댑터는 헌장의 "공통 인터페이스 뒤" 요구에 필요한 최소 구성 |
+| IV. 단순성(YAGNI) | 통과 | 이미지 리소스 + CSS 애니메이션, 설정·영속화·3D 없음. OS 어댑터는 헌장의 "공통 인터페이스 뒤" 요구에 필요한 최소 구성 |
 | V. 검증 가능한 스펙 | 통과 | 인수 시나리오를 단위·E2E·수동 절차에 매핑(quickstart.md) |
 | 기술/플랫폼 제약 | 통과 | Electron, macOS·Windows, 전체 화면 오버레이 + 클릭 통과 |
 | 문서 언어 | 통과 | 모든 산출물을 한국어로 작성 |
@@ -79,7 +79,8 @@ src/
 │   └── index.ts           # contextBridge로 IPC 노출
 ├── renderer/              # 오버레이 창 UI
 │   ├── index.html
-│   └── draw.ts            # Canvas 2D 스프라이트 렌더링
+│   ├── draw.ts            # IPC 상태를 img·CSS 클래스에 반영
+│   └── assets/            # walk.png(8프레임 시트), idle.png
 └── shared/                # Electron 비의존 순수 로직
     ├── types.ts           # Character·Point·Rect 등 공용 타입
     ├── ipc.ts             # 채널·페이로드 타입
