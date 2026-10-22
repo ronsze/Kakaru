@@ -15,6 +15,15 @@ import type { CharacterStore } from './characters-store'
 /** 기본 캐릭터 이미지의 프레임 한 변 (번들된 assets/walk.png, idle.png) */
 const DEFAULT_FRAME_SIZE = 200
 
+/** 처음 실행 때 등록해 둘 샘플 캐릭터. 이미지는 dir의 walk.png, idle.png다. */
+export type SampleCharacter = {
+  key: string
+  name: string
+  frames: number
+  frameSize: number
+  dir: string
+}
+
 export type CharacterServiceOptions = {
   now?: () => number
   makeId?: () => string
@@ -133,5 +142,32 @@ export class CharacterService {
   /** 오버레이에 적용할 활성 캐릭터의 모습 */
   appearance(): Appearance {
     return this.store.readAppearance()
+  }
+
+  /**
+   * 샘플 캐릭터를 처음 실행 때 한 번만 등록된 캐릭터로 넣는다. 이미지 파일이 없으면 건너뛴다.
+   * 활성 캐릭터는 바꾸지 않으므로 사용자가 선택하기 전에는 기본 캐릭터를 쓴다.
+   */
+  installSamples(samples: readonly SampleCharacter[]): number {
+    let installed = 0
+    for (const sample of samples) {
+      let walk: Buffer
+      let idle: Buffer
+      try {
+        walk = readFileSync(join(sample.dir, 'walk.png'))
+        idle = readFileSync(join(sample.dir, 'idle.png'))
+      } catch {
+        continue
+      }
+      const meta = {
+        id: this.makeId(),
+        name: sample.name,
+        frames: sample.frames,
+        frameSize: sample.frameSize,
+        createdAt: this.now()
+      }
+      if (this.store.seedSample(sample.key, meta, walk, idle)) installed++
+    }
+    return installed
   }
 }

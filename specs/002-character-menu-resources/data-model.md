@@ -28,6 +28,7 @@
 | `version` | `1` | 파일 형식 버전 |
 | `activeId` | `string \| null` | 활성 캐릭터 id. `null`이면 기본 캐릭터 |
 | `characters` | `CharacterSet[]` | 등록된 캐릭터. 등록 순서대로 |
+| `seeded` | `string[]` (선택) | 처음 실행 때 등록해 둔 샘플 캐릭터 키. 삭제해도 다시 넣지 않기 위해 기록 |
 
 ### 불변식
 

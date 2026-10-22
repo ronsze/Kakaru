@@ -5,7 +5,7 @@ import { _electron as electron, expect, test, type ElectronApplication, type Pag
 import { makePng } from '../unit/png-fixture'
 
 const ASSETS = join(process.cwd(), 'src', 'renderer', 'assets')
-const WALK = join(ASSETS, 'walk.png') // 4프레임, 200×200
+const WALK = join(ASSETS, 'walk.png') // 기본 캐릭터: 8프레임, 200×200
 const IDLE = join(ASSETS, 'idle.png')
 
 async function launch(userData: string): Promise<ElectronApplication> {
@@ -39,14 +39,16 @@ test.describe('캐릭터 설정 창 (US2)', () => {
     await app.close()
   })
 
-  test('처음에는 기본 캐릭터만 목록에 있다', async () => {
-    await expect(page.locator('#list li')).toHaveCount(1)
+  test('처음에는 기본 캐릭터와 샘플 캐릭터(빨간 모자)가 목록에 있고 기본 캐릭터를 쓴다', async () => {
+    await expect(page.locator('#list li')).toHaveCount(2)
     await expect(page.locator('#list li').first()).toContainText('기본')
+    await expect(page.locator('#list li').first()).toContainText('사용 중')
+    await expect(page.locator('#list li').nth(1)).toContainText('빨간 모자')
   })
 
   test('올바른 이미지를 지정하면 등록할 수 있고 등록하면 목록에 나타난다', async () => {
     await page.fill('#name', '테스트 고양이')
-    await page.fill('#frames', '4')
+    await page.fill('#frames', '8')
     await page.setInputFiles('#walk', WALK)
     await page.setInputFiles('#idle', IDLE)
     await expect(page.locator('#register')).toBeEnabled()
@@ -55,8 +57,8 @@ test.describe('캐릭터 설정 창 (US2)', () => {
 
     await page.click('#register')
     await expect(page.locator('#status')).toContainText('등록했습니다')
-    await expect(page.locator('#list li')).toHaveCount(2)
-    await expect(page.locator('#list li').nth(1)).toContainText('테스트 고양이')
+    await expect(page.locator('#list li')).toHaveCount(3)
+    await expect(page.locator('#list li').nth(2)).toContainText('테스트 고양이')
     // 등록 후 입력이 초기화된다
     await expect(page.locator('#name')).toHaveValue('')
     await expect(page.locator('#register')).toBeDisabled()
@@ -89,7 +91,7 @@ test.describe('캐릭터 설정 창 (US2)', () => {
     await page.fill('#name', '고양이')
     await expect(page.locator('#register')).toBeEnabled()
     await page.click('#register')
-    await expect(page.locator('#list li')).toHaveCount(2)
+    await expect(page.locator('#list li')).toHaveCount(3)
 
     await page.fill('#name', ' 고양이 ')
     await page.setInputFiles('#walk', WALK)
@@ -141,7 +143,7 @@ async function overlaysUseDefault(app: ElectronApplication): Promise<boolean> {
 
 async function register(page: Page, name: string): Promise<void> {
   await page.fill('#name', name)
-  await page.fill('#frames', '4')
+  await page.fill('#frames', '8')
   await page.setInputFiles('#walk', WALK)
   await page.setInputFiles('#idle', IDLE)
   await expect(page.locator('#register')).toBeEnabled()
@@ -167,8 +169,8 @@ test.describe('캐릭터 선택·관리 (US3)', () => {
   test('선택하면 오버레이가 사용자 캐릭터 이미지로 바뀌고, 기본으로 되돌리면 기본 이미지로 돌아온다', async () => {
     expect(await overlaysUseDefault(app)).toBe(true)
     await register(page, '고양이')
-    await page.locator('#list li').nth(1).locator('.btn-apply').click()
-    await expect(page.locator('#list li').nth(1)).toContainText('사용 중')
+    await page.locator('#list li').nth(2).locator('.btn-apply').click()
+    await expect(page.locator('#list li').nth(2)).toContainText('사용 중')
     await expect.poll(() => overlaysUseCustom(app)).toBe(true)
 
     await page.locator('#list li').first().locator('.btn-apply').click()
@@ -178,25 +180,53 @@ test.describe('캐릭터 선택·관리 (US3)', () => {
 
   test('앱을 다시 실행해도 마지막에 선택한 캐릭터가 유지된다 (SC-007)', async () => {
     await register(page, '고양이')
-    await page.locator('#list li').nth(1).locator('.btn-apply').click()
+    await page.locator('#list li').nth(2).locator('.btn-apply').click()
     await expect.poll(() => overlaysUseCustom(app)).toBe(true)
     await app.close()
 
     app = await launch(userData)
     page = await settingsPage(app)
-    await expect(page.locator('#list li').nth(1)).toContainText('사용 중')
+    await expect(page.locator('#list li').nth(2)).toContainText('사용 중')
     await expect.poll(() => overlaysUseCustom(app)).toBe(true)
   })
 
   test('사용 중인 캐릭터를 삭제하면 기본 캐릭터로 바뀐다', async () => {
     await register(page, '고양이')
-    await page.locator('#list li').nth(1).locator('.btn-apply').click()
+    await page.locator('#list li').nth(2).locator('.btn-apply').click()
     await expect.poll(() => overlaysUseCustom(app)).toBe(true)
 
-    await page.locator('#list li').nth(1).locator('.btn-delete').click()
-    await expect(page.locator('#list li')).toHaveCount(1)
+    await page.locator('#list li').nth(2).locator('.btn-delete').click()
+    await expect(page.locator('#list li')).toHaveCount(2)
     await expect(page.locator('#list li').first()).toContainText('사용 중')
     await expect.poll(() => overlaysUseDefault(app)).toBe(true)
+  })
+
+  test('샘플 캐릭터(빨간 모자)를 선택하면 4프레임 걷기 설정으로 바뀐다', async () => {
+    await page.locator('#list li').nth(1).locator('.btn-apply').click()
+    await expect.poll(() => overlaysUseCustom(app)).toBe(true)
+    const pages = await overlayPages(app)
+    const frames = await pages[0].evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--frames').trim()
+    )
+    expect(frames).toBe('4')
+
+    await page.locator('#list li').first().locator('.btn-apply').click()
+    await expect.poll(() => overlaysUseDefault(app)).toBe(true)
+    const defaultFrames = await pages[0].evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--frames').trim()
+    )
+    expect(defaultFrames).toBe('8')
+  })
+
+  test('샘플 캐릭터를 삭제하면 다시 실행해도 다시 나타나지 않는다', async () => {
+    await page.locator('#list li').nth(1).locator('.btn-delete').click()
+    await expect(page.locator('#list li')).toHaveCount(1)
+    await app.close()
+
+    app = await launch(userData)
+    page = await settingsPage(app)
+    await expect(page.locator('#list li')).toHaveCount(1)
+    await expect(page.locator('#list li').first()).toContainText('기본')
   })
 
   test('기본 캐릭터 항목에는 삭제 버튼이 없다', async () => {
@@ -205,7 +235,7 @@ test.describe('캐릭터 선택·관리 (US3)', () => {
 
   test('활성 캐릭터의 이미지 파일이 사라진 채 실행하면 기본으로 표시하고 설정 화면에 알린다 (FR-015)', async () => {
     await register(page, '고양이')
-    await page.locator('#list li').nth(1).locator('.btn-apply').click()
+    await page.locator('#list li').nth(2).locator('.btn-apply').click()
     await expect.poll(() => overlaysUseCustom(app)).toBe(true)
     await app.close()
 

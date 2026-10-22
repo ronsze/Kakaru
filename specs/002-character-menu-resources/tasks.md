@@ -39,7 +39,7 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 
 **⚠️ CRITICAL**: 이 단계가 끝나기 전에는 사용자 스토리 작업을 시작할 수 없다
 
-- [x] T002 [P] `src/shared/characters.ts`에 data-model.md의 타입과 제한 상수를 정의한다: `CharacterSet {id: string(정규식 ^[a-z0-9]{8,32}$), name: string(앞뒤 공백 제거 후 1~30자), frames: number(정수 2~32), frameSize: number(64~512), createdAt: number(ms, epoch)}`, `Settings {version: 1, activeId: string | null, characters: CharacterSet[]}`, `Appearance {walkUrl: string | null, idleUrl: string | null, frames: number}`, `ValidationError {code, target, message}`와 9개 코드(`not-png`, `too-large`, `corrupt-image`, `bad-frame-count`, `bad-walk-size`, `bad-idle-size`, `not-transparent`, `bad-name`, `duplicate-name`), 상수(이미지당 최대 5MB, 예약어 "기본", 기본 캐릭터 프레임 수 4)
+- [x] T002 [P] `src/shared/characters.ts`에 data-model.md의 타입과 제한 상수를 정의한다: `CharacterSet {id: string(정규식 ^[a-z0-9]{8,32}$), name: string(앞뒤 공백 제거 후 1~30자), frames: number(정수 2~32), frameSize: number(64~512), createdAt: number(ms, epoch)}`, `Settings {version: 1, activeId: string | null, characters: CharacterSet[]}`, `Appearance {walkUrl: string | null, idleUrl: string | null, frames: number}`, `ValidationError {code, target, message}`와 9개 코드(`not-png`, `too-large`, `corrupt-image`, `bad-frame-count`, `bad-walk-size`, `bad-idle-size`, `not-transparent`, `bad-name`, `duplicate-name`), 상수(이미지당 최대 5MB, 예약어 "기본", 기본 캐릭터 프레임 수 8)
 - [x] T003 [P] `src/shared/ipc.ts`에 contracts/ipc.md의 채널 이름(`character:appearance`, `characters:list`, `characters:validate`, `characters:register`, `characters:apply`, `characters:delete`, `characters:changed`)과 페이로드 타입(`CharacterSummary`, `ListResult`, `RegisterInput`, `ValidationResult`, `RegisterResult`)을 추가하고, `KakaruApi`에 `onAppearance(callback)`를, 새 `KakaruSettingsApi`(list, validate, register, apply, delete, onChanged)를 정의한다
 - [x] T004 [P] `tests/unit/png-fixture.ts`에 테스트용 PNG 생성 도우미를 만든다: 너비·높이·색상 유형(RGBA, RGB)·투명 픽셀 유무를 받아 유효한 PNG 바이트를 만든다(Node `zlib`로 IDAT 압축, CRC 계산 포함). 잘린 파일과 시그니처가 틀린 파일을 만드는 함수도 둔다
 - [x] T005 [P] `src/main/index.ts` 맨 위(앱 `ready` 이전)에 환경 변수 `KAKARU_USER_DATA`가 있으면 `app.setPath('userData', 값)`으로 사용자 데이터 폴더를 바꾸는 코드를 추가한다(E2E·단위 테스트 격리용, research R7)
@@ -89,10 +89,10 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 ### Implementation for User Story 2
 
 - [x] T017 [US2] `src/shared/characters.ts`에 `parsePngHeader(bytes)`와 `validateRegistration(input, inspector, existingNames)`를 구현한다(T002, T015, T016 의존). `ImageInspector` 포트는 `hasTransparentPixels(bytes): boolean | 'corrupt'`이며 Electron에 의존하지 않는다. 규칙은 research R6 표와 data-model.md 검증 규칙을 그대로 따른다 — "걷기 이미지의 크기는 `너비 = frameSize × frames, 높이 = frameSize`, 정지 이미지는 `너비 = 높이 = frameSize`", "두 이미지 모두 알파 값이 255가 아닌 픽셀이 하나 이상", "이미지는 PNG이고 각각 5MB 이하"
-- [x] T018 [US2] `src/main/characters-ipc.ts`에 `ipcMain.handle`로 `characters:list`, `characters:validate`, `characters:register`를 구현한다(T003, T007, T017 의존). `nativeImage.createFromBuffer`로 `ImageInspector`를 구현(`toBitmap()`을 훑어 알파 < 255인 픽셀 확인, 디코딩 실패는 `corrupt-image`), `crypto.randomBytes`로 `^[a-z0-9]{8,32}$` id 생성, 등록 성공 시 `characters:changed`를 설정 창에 보낸다(활성 캐릭터는 바꾸지 않음). `list`의 기본 캐릭터 항목은 `id: null`, `builtin: true`, `frames: 4`, `frameSize: 200`이고 `idleUrl`은 빈 문자열(설정 화면이 번들의 기본 이미지로 대체). `src/main/index.ts`에서 저장소를 만들고 핸들러를 등록한다
+- [x] T018 [US2] `src/main/characters-ipc.ts`에 `ipcMain.handle`로 `characters:list`, `characters:validate`, `characters:register`를 구현한다(T003, T007, T017 의존). `nativeImage.createFromBuffer`로 `ImageInspector`를 구현(`toBitmap()`을 훑어 알파 < 255인 픽셀 확인, 디코딩 실패는 `corrupt-image`), `crypto.randomBytes`로 `^[a-z0-9]{8,32}$` id 생성, 등록 성공 시 `characters:changed`를 설정 창에 보낸다(활성 캐릭터는 바꾸지 않음). `list`의 기본 캐릭터 항목은 `id: null`, `builtin: true`, `frames: 8`, `frameSize: 200`이고 `idleUrl`은 빈 문자열(설정 화면이 번들의 기본 이미지로 대체). `src/main/index.ts`에서 저장소를 만들고 핸들러를 등록한다
 - [x] T019 [US2] `src/preload/settings.ts`에 `kakaruSettings.list()`, `validate(input)`, `register(input)`, `onChanged(callback)`을 노출한다(T003 의존). `ArrayBuffer`는 그대로 `invoke`로 전달한다
 - [x] T020 [US2] `src/renderer/settings.html`과 `src/renderer/settings.ts`에 등록 화면을 구현한다(T019 의존): 이름 입력, 프레임 수 입력(기본 8), 걷기·정지 이미지용 `<input type="file" accept="image/png">`(파일을 `File.arrayBuffer()`로 읽어 5MB를 넘으면 읽지 않고 바로 안내), 입력이 바뀔 때마다 `validate`를 호출해 오류 메시지를 필드 옆에 표시하고 오류가 있으면 등록 버튼 비활성화, 미리보기(걷기는 프레임 수대로 `steps()`로 반복 재생하는 100×100 표시, 정지는 100×100, `Blob URL` 사용 후 `revokeObjectURL`), 등록 성공 후 입력 초기화와 완료 안내, 등록된 캐릭터 목록(기본 캐릭터가 맨 위, 이름·정지 이미지 썸네일만 표시, 동작 버튼은 US3에서 추가)
-- [x] T021 [P] [US2] `tests/e2e/settings.test.ts`(Playwright Electron, `KAKARU_USER_DATA`를 임시 폴더로, 앱 인자 `--open-settings`): 제목이 "캐릭터 설정"인 창을 찾아 이름 입력·`setInputFiles`로 `src/renderer/assets/walk.png`(프레임 수 4)·`idle.png`를 지정하면 오류가 없고 등록 버튼이 활성화됨, 등록하면 목록에 이름이 나타남, 정사각형이 아닌 정지 이미지(`tests/unit/png-fixture.ts`로 생성한 파일)를 지정하면 `bad-idle-size` 메시지가 보이고 등록 버튼이 비활성화됨(T018~T020 이후)
+- [x] T021 [P] [US2] `tests/e2e/settings.test.ts`(Playwright Electron, `KAKARU_USER_DATA`를 임시 폴더로, 앱 인자 `--open-settings`): 제목이 "캐릭터 설정"인 창을 찾아 이름 입력·`setInputFiles`로 `src/renderer/assets/walk.png`(프레임 수 8)·`idle.png`를 지정하면 오류가 없고 등록 버튼이 활성화됨, 등록하면 목록에 이름이 나타남, 정사각형이 아닌 정지 이미지(`tests/unit/png-fixture.ts`로 생성한 파일)를 지정하면 `bad-idle-size` 메시지가 보이고 등록 버튼이 비활성화됨(T018~T020 이후)
 - [ ] T022 [US2] macOS에서 quickstart.md 수동 #8, #9(조건 위반 10종)를 실행하고 결과를 `tests/manual/results.md`에 기록한다
 
 **Checkpoint**: US1과 US2가 모두 독립적으로 동작해야 한다
@@ -107,14 +107,14 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 
 ### Tests for User Story 3 ⚠️
 
-- [x] T023 [P] [US3] `tests/unit/characters-store-active.test.ts`: `setActive(id)`가 저장되고 재로드해도 유지됨, 없는 id는 거부, `setActive(null)`은 기본으로 복귀, `remove(id)`가 목록·폴더를 지우고 폴더 삭제가 실패해도 목록에서는 사라진 상태를 유지, 활성 캐릭터를 지우면 `activeId`가 `null`이 됨(FR-013), `readAppearance()`가 기본이면 `{ walkUrl: null, idleUrl: null, frames: 4 }`, 사용자 캐릭터이면 이미지의 `data:image/png;base64,…` URL과 `frames`를 돌려줌, 활성 캐릭터의 이미지 파일이 없으면 기본 외형으로 대체하고 `notice`를 설정함(FR-015)
+- [x] T023 [P] [US3] `tests/unit/characters-store-active.test.ts`: `setActive(id)`가 저장되고 재로드해도 유지됨, 없는 id는 거부, `setActive(null)`은 기본으로 복귀, `remove(id)`가 목록·폴더를 지우고 폴더 삭제가 실패해도 목록에서는 사라진 상태를 유지, 활성 캐릭터를 지우면 `activeId`가 `null`이 됨(FR-013), `readAppearance()`가 기본이면 `{ walkUrl: null, idleUrl: null, frames: 8 }`, 사용자 캐릭터이면 이미지의 `data:image/png;base64,…` URL과 `frames`를 돌려줌, 활성 캐릭터의 이미지 파일이 없으면 기본 외형으로 대체하고 `notice`를 설정함(FR-015)
 
 ### Implementation for User Story 3
 
 - [x] T024 [US3] `src/main/characters-store.ts`에 `setActive(id | null)`, `remove(id)`, `readAppearance()`를 구현한다(T007, T023 의존). 반환값에 문제 알림(`notice`)을 포함하고 `list()`는 이미지가 없는 항목에 `problem`을 채운다
 - [x] T025 [US3] `src/main/characters-ipc.ts`에 `characters:apply`(인자 `id | null`)와 `characters:delete`(기본 캐릭터 거부)를 구현하고(T018, T024 의존), 변경 후 모든 오버레이 창에 `character:appearance`를, 설정 창에 `characters:changed`를 보낸다. `src/main/overlay.ts`는 오버레이 창의 `did-finish-load`(모니터 추가로 새로 만든 창 포함) 때 현재 `Appearance`를 다시 보내고, 앱 시작 시에는 저장된 활성 캐릭터를 읽어 적용한다
 - [x] T026 [P] [US3] `src/preload/index.ts`에 `onAppearance(callback)`을, `src/preload/settings.ts`에 `apply(id)`, `delete(id)`를 추가한다(T003 의존)
-- [x] T027 [US3] `src/renderer/draw.ts`와 `src/renderer/index.html`이 `Appearance`를 반영하게 한다(T026 의존): `walkUrl`·`idleUrl`이 `null`이면 번들의 기본 이미지, 아니면 `data:` URL을 `<img>`에 지정. 프레임 수 `N`에 따라 CSS 변수(`--frames`, `--strip` = `N × 100px`, `--cycle` = `max(560ms, N × 70ms)`)로 `steps()`·이동 거리·한 바퀴 시간을 계산해 기본 캐릭터(4프레임, 0.56초)와 같은 결과를 낸다. 외형이 바뀌어도 위치·방향·이동 상태는 유지하고, `<img>` `onerror`에서는 기본 이미지로 되돌린다
+- [x] T027 [US3] `src/renderer/draw.ts`와 `src/renderer/index.html`이 `Appearance`를 반영하게 한다(T026 의존): `walkUrl`·`idleUrl`이 `null`이면 번들의 기본 이미지, 아니면 `data:` URL을 `<img>`에 지정. 프레임 수 `N`에 따라 CSS 변수(`--frames`, `--strip` = `N × 100px`, `--cycle` = `max(560ms, N × 70ms)`)로 `steps()`·이동 거리·한 바퀴 시간을 계산해 기본 캐릭터(8프레임, 0.56초)와 같은 결과를 낸다. 외형이 바뀌어도 위치·방향·이동 상태는 유지하고, `<img>` `onerror`에서는 기본 이미지로 되돌린다
 - [x] T028 [US3] `src/renderer/settings.ts`의 목록에 동작을 추가한다(T026 의존): 각 항목에 "선택" 버튼과 현재 활성 표시, 사용자 캐릭터에만 "삭제" 버튼(삭제 전 확인), 기본 캐릭터 항목은 삭제 버튼 없음, "기본 캐릭터로 되돌리기" 버튼, 활성 캐릭터의 문제 `notice`·항목별 `problem` 배너, `characters:changed`를 받으면 목록을 다시 불러옴
 - [x] T029 [P] [US3] `tests/e2e/settings.test.ts`를 확장한다(T025, T027, T028 이후): 캐릭터를 등록·선택하면 오버레이 창이 `walkUrl`이 `data:image/png`로 시작하는 `character:appearance`를 받음, 같은 `KAKARU_USER_DATA`로 앱을 다시 실행하면 오버레이가 같은 활성 캐릭터의 `character:appearance`를 받음(SC-007), 활성 캐릭터를 삭제하면 `walkUrl: null`(기본)을 받음, 기본 캐릭터 항목에는 삭제 버튼이 없음
 - [ ] T030 [US3] macOS에서 quickstart.md 수동 #10~#13을 실행하고 결과를 `tests/manual/results.md`에 기록한다
@@ -130,6 +130,18 @@ description: "우클릭 메뉴와 캐릭터 리소스 설정 구현 작업 목�
 - [x] T031 [P] `README.md`에 메뉴와 캐릭터 설정 사용법, 이미지 규격(PNG, 프레임 한 변 64~512px, 프레임 수 2~32, 5MB 이하, 투명 배경, 오른쪽을 보는 한 방향), 개발·테스트용 환경 변수 `KAKARU_USER_DATA`와 앱 인자 `--open-settings`를 추가한다
 - [x] T032 macOS에서 설정 창을 닫은 유휴 상태의 CPU·메모리를 001과 같은 방법으로 측정해 SC-006(CPU 10% 이하, 메모리 300MB 이하) 유지 여부를 `tests/manual/results.md`에 기록한다(research R10)
 - [ ] T033 quickstart.md 전체 절차(자동 + 수동 #1~#13)를 macOS에서 최종 검증하고, Windows 검증과 멀티 모니터·절전 상태에서의 메뉴 동작이 후속임을 spec Assumptions·`tests/manual/results.md`에 명시한다
+
+---
+
+## Phase 7: 기본 캐릭터 교체와 샘플 캐릭터 (후속 변경)
+
+**Purpose**: 기본 캐릭터를 기존 폴리곤 고양이(8프레임)로 되돌리고, `specs/bmm.png` 기반 캐릭터는 처음 실행 때 등록되는 샘플("빨간 모자", 4프레임)로 옮긴다 (research R9, R9-2).
+
+- [x] T034 폴리곤 고양이 이미지(`src/renderer/assets/walk.png` 8프레임, `idle.png`)와 `scripts/generate-placeholder-sprites.cjs`를 복원하고, 기본 프레임 수 상수(`LIMITS.defaultFrames`, `draw.ts`의 `DEFAULT_FRAMES`, `index.html`·`settings.html`의 CSS 기본값, 설정 폼 기본값)를 8로 바꾼다
+- [x] T035 `bmm.png` 기반 이미지를 `resources/characters/bmm/`(`walk.png` 4프레임, `idle.png`)로 옮기고 `scripts/extract-default-character.cjs`의 출력 경로를 바꾼다
+- [x] T036 `CharacterStore.seedSample(key, meta, walk, idle)`와 `settings.json`의 선택 필드 `seeded`(샘플 키 목록)를 구현하고, `CharacterService.installSamples(samples)`로 이미지 파일이 있을 때만 처음 한 번 등록한다(활성 캐릭터는 바꾸지 않음, 삭제해도 다시 넣지 않음). `src/main/index.ts`에서 샘플 "빨간 모자"(걷기 4프레임, 프레임 200px)를 `resources/characters/bmm`에서 등록한다
+- [x] T037 단위 테스트(저장소 샘플 등록 4건, 서비스 `installSamples` 3건)와 E2E(처음 목록 구성, 샘플 선택 시 `--frames`가 4, 샘플 삭제 후 재실행해도 다시 나타나지 않음)를 추가·수정하고, spec·research·data-model·storage 계약·README를 갱신한다
+
 
 ---
 

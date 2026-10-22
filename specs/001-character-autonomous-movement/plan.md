@@ -80,7 +80,7 @@ src/
 ├── renderer/              # 오버레이 창 UI
 │   ├── index.html
 │   ├── draw.ts            # IPC 상태를 img·CSS 클래스에 반영
-│   └── assets/            # walk.png(4프레임 시트), idle.png
+│   └── assets/            # walk.png(8프레임 시트), idle.png
 └── shared/                # Electron 비의존 순수 로직
     ├── types.ts           # Character·Point·Rect 등 공용 타입
     ├── ipc.ts             # 채널·페이로드 타입

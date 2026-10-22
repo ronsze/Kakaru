@@ -18,8 +18,8 @@ const HALF = SIZE / 2
  */
 const GLIDE_SECONDS = 1.2
 
-/** 번들에 포함된 기본 걷기 이미지의 프레임 수 (assets/walk.png, 200×200 프레임 4장) */
-const DEFAULT_FRAMES = 4
+/** 번들에 포함된 기본 걷기 이미지의 프레임 수 (assets/walk.png, 200×200 프레임 8장) */
+const DEFAULT_FRAMES = 8
 /** 걷기 한 바퀴의 최소 시간(ms)과 프레임당 시간(ms). 프레임이 적어도 너무 빠르게 넘기지 않는다. */
 const MIN_CYCLE_MS = 560
 const FRAME_MS = 70

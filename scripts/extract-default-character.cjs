@@ -1,11 +1,11 @@
 /**
- * 기본 캐릭터 이미지 추출기.
+ * 샘플 캐릭터(빨간 모자) 이미지 추출기.
  * specs/bmm.png(서있는 자세 1장 + 걷기 프레임 3장이 한 장에 담긴 참고 이미지)에서 각 자세를 잘라
  * 흰 배경을 투명으로 만들고, 앱이 쓰는 규격의 PNG로 저장한다.
- * 최종 디자인 이미지가 준비되면 src/renderer/assets/ 의 파일을 교체하고 이 스크립트는 지워도 된다.
+ * 앱이 처음 실행될 때 "빨간 모자" 캐릭터로 등록하는 샘플 이미지다(기본 캐릭터는 폴리곤 고양이).
  *
  * 실행: npx electron scripts/extract-default-character.cjs
- * 출력: src/renderer/assets/walk.png (200x200 프레임 4장 가로 배열: 1,2,3,2 순서), idle.png (200x200)
+ * 출력: resources/characters/bmm/walk.png (200x200 프레임 4장 가로 배열: 1,2,3,2 순서), idle.png (200x200)
  *       미리보기(어두운 배경 합성)는 인자로 경로를 주면 저장한다.
  */
 const { app, BrowserWindow } = require('electron')
@@ -13,7 +13,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const SOURCE = path.join(__dirname, '..', 'specs', 'bmm.png')
-const OUT_DIR = path.join(__dirname, '..', 'src', 'renderer', 'assets')
+const OUT_DIR = path.join(__dirname, '..', 'resources', 'characters', 'bmm')
 const PREVIEW = process.argv[2] // 선택: 미리보기 PNG 저장 경로
 
 /** 페이지 안에서 실행된다 (자기 완결적이어야 한다). */

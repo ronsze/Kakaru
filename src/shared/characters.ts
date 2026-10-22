@@ -14,7 +14,7 @@ export const LIMITS = {
   /** 기본 캐릭터가 쓰는 이름이라 등록할 수 없다 */
   reservedName: '기본',
   /** 번들에 포함된 기본 걷기 이미지의 프레임 수 */
-  defaultFrames: 4
+  defaultFrames: 8
 } as const
 
 /** 등록된 캐릭터 하나. 기본 캐릭터는 코드에 내장되어 있어 저장하지 않는다. */
@@ -36,6 +36,8 @@ export type Settings = {
   /** null이면 기본 캐릭터 */
   activeId: string | null
   characters: CharacterSet[]
+  /** 처음 실행 때 등록해 둔 샘플 캐릭터 키. 삭제해도 다시 넣지 않기 위해 기록한다 */
+  seeded?: string[]
 }
 
 /** 오버레이에 적용되는 활성 캐릭터의 모습 (저장하지 않는 파생 값) */

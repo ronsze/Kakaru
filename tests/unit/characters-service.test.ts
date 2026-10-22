@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -160,5 +160,44 @@ describe('CharacterService.apply / delete', () => {
     const list = service.list()
     expect(list.notice).toBeTruthy()
     expect(list.activeId).toBeNull()
+  })
+})
+
+describe('CharacterService.installSamples', () => {
+  function sampleDir(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'kakaru-sample-'))
+    writeFileSync(join(dir, 'walk.png'), makePng({ width: 800, height: 200 }))
+    writeFileSync(join(dir, 'idle.png'), makePng({ width: 200, height: 200 }))
+    return dir
+  }
+  const sample = (dir: string) => ({ key: 'bmm', name: '빨간 모자', frames: 4, frameSize: 200, dir })
+
+  it('처음에는 샘플이 등록된 캐릭터로 들어가고 활성 캐릭터는 기본이다', () => {
+    const { service } = setup()
+    const dir = sampleDir()
+    expect(service.installSamples([sample(dir)])).toBe(1)
+    const list = service.list()
+    expect(list.characters.map((c) => c.name)).toEqual([LIMITS.reservedName, '빨간 모자'])
+    expect(list.characters[1]).toMatchObject({ builtin: false, frames: 4, frameSize: 200 })
+    expect(list.activeId).toBeNull()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('다시 호출하거나 삭제한 뒤에도 다시 넣지 않는다', () => {
+    const { service } = setup()
+    const dir = sampleDir()
+    service.installSamples([sample(dir)])
+    expect(service.installSamples([sample(dir)])).toBe(0)
+    const id = service.list().characters[1].id as string
+    service.delete(id)
+    expect(service.installSamples([sample(dir)])).toBe(0)
+    expect(service.list().characters).toHaveLength(1)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('이미지 파일이 없으면 건너뛴다', () => {
+    const { service } = setup()
+    expect(service.installSamples([sample(join(root, 'nothing'))])).toBe(0)
+    expect(service.list().characters).toHaveLength(1)
   })
 })

@@ -107,3 +107,41 @@ describe('CharacterStore 추가', () => {
     expect(store.list().map((c) => c.id)).toEqual(['zzzz9999'])
   })
 })
+
+describe('CharacterStore 샘플 등록', () => {
+  it('샘플을 처음 한 번만 등록하고 활성 캐릭터는 바꾸지 않는다', () => {
+    const store = new CharacterStore(root)
+    store.load()
+    expect(store.seedSample('bmm', meta('sample01', '빨간 모자'), walk, idle)).toBe(true)
+    expect(store.list().map((c) => c.name)).toEqual(['빨간 모자'])
+    expect(store.getActiveId()).toBeNull()
+    expect(store.seedSample('bmm', meta('sample02', '다른 이름'), walk, idle)).toBe(false)
+    expect(store.list()).toHaveLength(1)
+  })
+
+  it('삭제한 뒤 다시 로드해도 샘플을 다시 넣지 않는다', () => {
+    const a = new CharacterStore(root)
+    a.load()
+    a.seedSample('bmm', meta('sample01', '빨간 모자'), walk, idle)
+    a.remove('sample01')
+    const b = new CharacterStore(root)
+    b.load()
+    expect(b.seedSample('bmm', meta('sample03', '빨간 모자'), walk, idle)).toBe(false)
+    expect(b.list()).toEqual([])
+  })
+
+  it('settings.json에 등록한 샘플 키가 기록된다', () => {
+    const store = new CharacterStore(root)
+    store.load()
+    store.seedSample('bmm', meta('sample01', '빨간 모자'), walk, idle)
+    const saved = JSON.parse(readFileSync(join(root, 'settings.json'), 'utf8'))
+    expect(saved.seeded).toEqual(['bmm'])
+  })
+
+  it('seeded가 문자열 배열이 아니면 손상으로 보고 빈 상태로 시작한다', () => {
+    writeFileSync(join(root, 'settings.json'), JSON.stringify({ version: 1, activeId: null, characters: [], seeded: 'bmm' }))
+    const store = new CharacterStore(root)
+    store.load()
+    expect(readdirSync(root).some((f) => f.startsWith('settings.json.broken-'))).toBe(true)
+  })
+})

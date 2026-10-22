@@ -34,7 +34,8 @@ function isSettings(v: unknown): v is Settings {
     s.version === 1 &&
     (s.activeId === null || typeof s.activeId === 'string') &&
     Array.isArray(s.characters) &&
-    s.characters.every(isCharacterSet)
+    s.characters.every(isCharacterSet) &&
+    (s.seeded === undefined || (Array.isArray(s.seeded) && s.seeded.every((k) => typeof k === 'string')))
   )
 }
 
@@ -113,8 +114,18 @@ export class CharacterStore {
     return n
   }
 
+  /**
+   * 샘플 캐릭터를 처음 한 번만 등록한다. 한 번 등록한 적이 있으면(삭제했더라도) 다시 넣지 않는다.
+   * 활성 캐릭터는 바꾸지 않는다. 새로 등록했으면 true.
+   */
+  seedSample(key: string, meta: CharacterSet, walk: Buffer, idle: Buffer): boolean {
+    if (this.settings.seeded?.includes(key)) return false
+    this.add(meta, walk, idle, key)
+    return true
+  }
+
   /** 이미지를 저장하고 목록에 추가한다. 중간에 실패하면 만든 폴더를 지운다. */
-  add(meta: CharacterSet, walk: Buffer, idle: Buffer): void {
+  add(meta: CharacterSet, walk: Buffer, idle: Buffer, seedKey?: string): void {
     const dir = this.characterDir(meta.id)
     if (this.settings.characters.some((c) => c.id === meta.id)) {
       throw new Error(`이미 있는 캐릭터 id: ${meta.id}`)
@@ -124,10 +135,12 @@ export class CharacterStore {
       writeFileSync(join(dir, 'walk.png'), walk)
       writeFileSync(join(dir, 'idle.png'), idle)
       this.settings.characters.push({ ...meta })
+      if (seedKey) this.settings.seeded = [...(this.settings.seeded ?? []), seedKey]
       try {
         this.save()
       } catch (error) {
         this.settings.characters.pop()
+        if (seedKey) this.settings.seeded = this.settings.seeded?.filter((k) => k !== seedKey)
         throw error
       }
     } catch (error) {
