@@ -16,12 +16,17 @@ type CharacterUpdate = {
   // 창 로컬 좌표(DIP). visible=false이면 무시.
   x: number
   y: number
+  // 속도 (px/s, DIP). 이동 중이 아니면 0. 렌더러가 이 속도로 위치를 이어서 계산한다.
+  vx: number
+  vy: number
   heading: -1 | 1
   state: 'Walking' | 'Idle' | 'UserControlled'
 }
 ```
 
-- 전송 주기: 시뮬레이션 틱(60Hz). 변화가 없는 틱은 생략할 수 있다.
+- 전송 시점: 상태·방향·표시 디스플레이가 바뀔 때, 그리고 이동 중 1초마다 한 번(위치 보정).
+  매 프레임 위치를 보내지 않는다. 렌더러는 마지막으로 받은 `(x, y)`에서 `(vx, vy)`로
+  위치를 이어서 계산한다(CPU 절약, SC-006).
 
 ## 렌더러 → 메인
 
