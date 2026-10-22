@@ -25,6 +25,9 @@
 - **한계**: 히트 영역은 반지름 40px 원이므로 이미지의 투명한 모서리를 우클릭해도 열릴 수 있다.
 - **검증 필요**: `focusable: false` 창에서 macOS·Windows 모두 `context-menu`가 발생하는지.
   발생하지 않으면 렌더러에서 `contextmenu` DOM 이벤트를 받아 IPC로 알리는 방식으로 바꾼다.
+- **스파이크 결과(macOS, 2026-10-22)**: `focusable: false` 오버레이 창 2개(디스플레이 2대) 모두에서
+  `webContents.sendInputEvent`로 보낸 우클릭이 `context-menu` 이벤트를 발생시켰다(좌표 전달 확인).
+  실제 마우스 우클릭과 Windows는 수동 검증이 필요하다.
 
 ## R3. 메뉴 열림 동안의 이동 정지
 

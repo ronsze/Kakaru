@@ -3,12 +3,6 @@ import type { BehaviorState, Heading } from './types'
 
 export const CHANNEL_CHARACTER_UPDATE = 'character:update'
 export const CHANNEL_APPEARANCE = 'character:appearance'
-export const CHANNEL_CHARACTERS_LIST = 'characters:list'
-export const CHANNEL_CHARACTERS_VALIDATE = 'characters:validate'
-export const CHANNEL_CHARACTERS_REGISTER = 'characters:register'
-export const CHANNEL_CHARACTERS_APPLY = 'characters:apply'
-export const CHANNEL_CHARACTERS_DELETE = 'characters:delete'
-export const CHANNEL_CHARACTERS_CHANGED = 'characters:changed'
 
 /**
  * 디스플레이별 오버레이 창에 보내는 캐릭터 상태. x, y는 창 로컬 좌표(DIP).

@@ -8,22 +8,246 @@
     />
     <title>캐릭터 설정</title>
     <style>
+      :root {
+        --frames: 4;
+        --strip: 400px;
+        --cycle: 560ms;
+        --accent: #d9534f;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        padding: 24px;
+        padding: 20px 24px;
         font-family: -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+        font-size: 14px;
         color: #222;
         background: #fafafa;
       }
       h1 {
-        margin: 0 0 16px;
+        margin: 0 0 14px;
         font-size: 20px;
+      }
+      h2 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+      #notice {
+        display: none;
+        margin: 0 0 12px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: #fff4e5;
+        border: 1px solid #f0c987;
+      }
+      .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      section {
+        background: #fff;
+        border: 1px solid #e3e3e3;
+        border-radius: 8px;
+        padding: 14px;
+        min-height: 400px;
+      }
+      #list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 420px;
+        overflow-y: auto;
+      }
+      #list li {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 4px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      #list li:last-child {
+        border-bottom: none;
+      }
+      #list img {
+        width: 48px;
+        height: 48px;
+        object-fit: contain;
+        background: #f3f3f3;
+        border-radius: 6px;
+      }
+      .item-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .item-name {
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .item-meta {
+        font-size: 12px;
+        color: #777;
+      }
+      .item-problem {
+        font-size: 12px;
+        color: #b00020;
+      }
+      .badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 400;
+        background: var(--accent);
+        color: #fff;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+      }
+      label {
+        display: block;
+        margin: 10px 0 4px;
+        font-weight: 600;
+      }
+      input[type='text'],
+      input[type='number'] {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font: inherit;
+      }
+      input[type='file'] {
+        width: 100%;
+        font: inherit;
+        font-size: 12px;
+      }
+      .error {
+        min-height: 0;
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: #b00020;
+      }
+      button {
+        padding: 6px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      #preview {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+      }
+      .preview-box {
+        text-align: center;
+        font-size: 12px;
+        color: #777;
+      }
+      .stage {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 4px;
+        overflow: hidden;
+        position: relative;
+        background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 0 0 / 16px 16px;
+        border-radius: 6px;
+      }
+      .stage img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100px;
+      }
+      #preview-walk {
+        width: var(--strip);
+        animation: walk var(--cycle) steps(var(--frames)) infinite;
+      }
+      #preview-idle {
+        width: 100px;
+      }
+      @keyframes walk {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(calc(-1 * var(--strip)));
+        }
+      }
+      #status {
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      #status.ok {
+        color: #1b7f3b;
+      }
+      #status.fail {
+        color: #b00020;
+      }
+      .hint {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: #777;
       }
     </style>
   </head>
   <body>
     <h1>캐릭터 설정</h1>
-    <div id="app"></div>
+    <div id="notice" role="alert"></div>
+    <div class="columns">
+      <section>
+        <h2>등록된 캐릭터</h2>
+        <ul id="list"></ul>
+      </section>
+      <section>
+        <h2>새 캐릭터 등록</h2>
+        <label for="name">이름</label>
+        <input id="name" type="text" maxlength="60" autocomplete="off" />
+        <div class="error" id="error-name"></div>
+
+        <label for="frames">걷기 프레임 수</label>
+        <input id="frames" type="number" value="4" min="2" max="32" step="1" />
+        <div class="error" id="error-frames"></div>
+
+        <label for="walk">걷기 이미지 (프레임을 가로로 이은 PNG)</label>
+        <input id="walk" type="file" accept="image/png" />
+        <div class="error" id="error-walk"></div>
+
+        <label for="idle">정지 이미지 (PNG)</label>
+        <input id="idle" type="file" accept="image/png" />
+        <div class="error" id="error-idle"></div>
+
+        <div id="preview">
+          <div class="preview-box">
+            <div class="stage"><img id="preview-walk" alt="" hidden /></div>
+            걷기
+          </div>
+          <div class="preview-box">
+            <div class="stage"><img id="preview-idle" alt="" hidden /></div>
+            정지
+          </div>
+        </div>
+        <p class="hint" id="hint">걷기 이미지와 정지 이미지를 모두 선택하면 미리보기와 검사 결과가 나타납니다.</p>
+        <button id="register" class="primary" type="button" disabled>등록</button>
+        <div id="status" role="status"></div>
+      </section>
+    </div>
     <script type="module" src="./settings.ts"></script>
   </body>
 </html>

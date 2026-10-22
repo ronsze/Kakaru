@@ -1,5 +1,8 @@
 import { app } from 'electron'
 import { ContextMenuController } from '../shared/context-menu-controller'
+import { CharacterService } from './characters-service'
+import { CharacterStore } from './characters-store'
+import { nativeImageInspector, registerCharactersIpc } from './characters-ipc'
 import { attachContextMenu } from './context-menu'
 import { createHitTest } from './hit-test'
 import { OverlayManager } from './overlay'
@@ -19,6 +22,10 @@ app.on('before-quit', stopSimulation)
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin') app.dock?.hide()
+
+  const store = new CharacterStore(app.getPath('userData'))
+  store.load()
+  registerCharactersIpc(new CharacterService(store, nativeImageInspector))
 
   const menu = new ContextMenuController({ setUserControlled, openSettings: openSettingsWindow })
   const overlays = new OverlayManager({ onCreate: (win) => attachContextMenu(win, menu) })

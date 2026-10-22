@@ -71,9 +71,10 @@ specs/002-character-menu-resources/
 ```text
 src/
 ├── main/
-│   ├── context-menu.ts        # 우클릭 → 네이티브 메뉴, setUserControlled 연동, 중복 열림 방지
+│   ├── context-menu.ts        # 오버레이 우클릭 → 네이티브 메뉴 연결
 │   ├── settings-window.ts     # 설정 창 생성·재사용·파괴
 │   ├── characters-store.ts    # 파일 저장소(Electron 비의존, 루트 경로 주입)
+│   ├── characters-service.ts  # 목록·검증·등록 로직(Electron 비의존, 투명도 검사는 포트 주입)
 │   ├── characters-ipc.ts      # ipcMain 핸들러, nativeImage 투명도 검사, appearance 전달
 │   └── overlay.ts             # (수정) context-menu 연결, 로드 후 appearance 재전송
 ├── preload/
@@ -85,13 +86,16 @@ src/
 │   └── settings.ts            # 목록·등록 폼·미리보기
 └── shared/
     ├── characters.ts          # 타입, 검증 규칙(순수), PNG 헤더 파싱(순수)
-    └── ipc.ts                 # (수정) 채널·페이로드 타입 추가
+    ├── context-menu-controller.ts  # 메뉴 열림·닫힘 상태(순수), 이동 정지 연동·중복 열림 방지
+    ├── ipc-settings.ts        # 설정 창 채널 이름(preload 공유 청크 방지를 위해 분리)
+    └── ipc.ts                 # (수정) 오버레이 채널·페이로드 타입 추가
 
 tests/
 ├── unit/
 │   ├── characters-validation.test.ts
 │   ├── png-header.test.ts
 │   ├── characters-store.test.ts
+│   ├── characters-service.test.ts
 │   └── context-menu.test.ts
 ├── e2e/
 │   └── settings.test.ts
