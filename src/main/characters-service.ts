@@ -1,12 +1,13 @@
 import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { LIMITS, validateRegistration, type ImageInspector } from '../shared/characters'
+import { LIMITS, validateRegistration, type Appearance, type ImageInspector } from '../shared/characters'
 import type {
   CharacterSummary,
   ListResult,
   RegisterInput,
   RegisterResult,
+  SimpleResult,
   ValidationResult
 } from '../shared/ipc'
 import type { CharacterStore } from './characters-store'
@@ -104,5 +105,33 @@ export class CharacterService {
       Buffer.from(toBytes(input.idle))
     )
     return { ok: true, id }
+  }
+
+  /** 활성 캐릭터를 바꾼다. id가 null이면 기본 캐릭터로 되돌린다. */
+  apply(id: string | null): SimpleResult {
+    try {
+      this.store.setActive(id)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /** 등록한 캐릭터를 지운다. 기본 캐릭터(null)는 지울 수 없다. */
+  delete(id: string | null): SimpleResult {
+    if (id === null || typeof id !== 'string') {
+      return { ok: false, message: '기본 캐릭터는 삭제할 수 없습니다.' }
+    }
+    try {
+      this.store.remove(id)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /** 오버레이에 적용할 활성 캐릭터의 모습 */
+  appearance(): Appearance {
+    return this.store.readAppearance()
   }
 }

@@ -176,7 +176,7 @@ async function register(): Promise<void> {
 
 // ───────── 목록 ─────────
 
-function renderItem(c: CharacterSummary): HTMLLIElement {
+function renderItem(c: CharacterSummary, activeId: string | null): HTMLLIElement {
   const li = document.createElement('li')
   li.dataset.id = c.id ?? ''
 
@@ -192,8 +192,15 @@ function renderItem(c: CharacterSummary): HTMLLIElement {
   name.textContent = c.name
   if (c.builtin) {
     const badge = document.createElement('span')
-    badge.className = 'badge'
+    badge.className = 'badge default'
     badge.textContent = '기본'
+    name.append(badge)
+  }
+  const active = c.id === activeId
+  if (active) {
+    const badge = document.createElement('span')
+    badge.className = 'badge active'
+    badge.textContent = '사용 중'
     name.append(badge)
   }
   const meta = document.createElement('div')
@@ -207,11 +214,50 @@ function renderItem(c: CharacterSummary): HTMLLIElement {
     main.append(problem)
   }
   li.append(main)
+
+  const actions = document.createElement('div')
+  actions.className = 'actions'
+  if (!active) {
+    const apply = document.createElement('button')
+    apply.type = 'button'
+    apply.className = 'btn-apply'
+    apply.textContent = c.builtin ? '기본으로 되돌리기' : '선택'
+    apply.addEventListener('click', () => void applyCharacter(c))
+    actions.append(apply)
+  }
+  if (!c.builtin && c.id !== null) {
+    const del = document.createElement('button')
+    del.type = 'button'
+    del.className = 'btn-delete'
+    del.textContent = '삭제'
+    del.addEventListener('click', () => void deleteCharacter(c))
+    actions.append(del)
+  }
+  li.append(actions)
   return li
 }
 
+async function applyCharacter(c: CharacterSummary): Promise<void> {
+  const result = await api.apply(c.id)
+  if (result.ok) {
+    setStatus(c.builtin ? '기본 캐릭터로 되돌렸습니다.' : `"${c.name}" 캐릭터를 적용했습니다.`, 'ok')
+  } else {
+    setStatus(result.message, 'fail')
+  }
+  await refreshList()
+}
+
+async function deleteCharacter(c: CharacterSummary): Promise<void> {
+  if (c.id === null) return
+  if (!window.confirm(`"${c.name}" 캐릭터를 삭제할까요? 되돌릴 수 없습니다.`)) return
+  const result = await api.delete(c.id)
+  if (result.ok) setStatus(`"${c.name}" 캐릭터를 삭제했습니다.`, 'ok')
+  else setStatus(result.message, 'fail')
+  await refreshList()
+}
+
 function renderList(result: ListResult): void {
-  listEl.replaceChildren(...result.characters.map(renderItem))
+  listEl.replaceChildren(...result.characters.map((c) => renderItem(c, result.activeId)))
   noticeEl.style.display = result.notice ? 'block' : 'none'
   noticeEl.textContent = result.notice ?? ''
 }

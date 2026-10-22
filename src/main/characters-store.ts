@@ -1,6 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { ID_PATTERN, LIMITS, type CharacterSet, type Settings } from '../shared/characters'
+import {
+  ID_PATTERN,
+  LIMITS,
+  type Appearance,
+  type CharacterSet,
+  type Settings
+} from '../shared/characters'
 
 const SETTINGS_FILE = 'settings.json'
 
@@ -127,6 +133,83 @@ export class CharacterStore {
     } catch (error) {
       rmSync(dir, { recursive: true, force: true })
       throw error
+    }
+  }
+
+  /** 활성 캐릭터를 바꾼다. null이면 기본 캐릭터로 되돌린다. */
+  setActive(id: string | null): void {
+    if (id !== null) {
+      if (!this.settings.characters.some((c) => c.id === id)) {
+        throw new Error(`등록되지 않은 캐릭터입니다: ${id}`)
+      }
+      if (!this.imagesExist(id)) throw new Error('캐릭터 이미지를 읽을 수 없습니다.')
+    }
+    const previous = this.settings.activeId
+    this.settings.activeId = id
+    try {
+      this.save()
+    } catch (error) {
+      this.settings.activeId = previous
+      throw error
+    }
+  }
+
+  /** 캐릭터를 목록에서 빼고 이미지 폴더를 지운다. 활성 캐릭터였으면 기본으로 되돌린다. */
+  remove(id: string): void {
+    const index = this.settings.characters.findIndex((c) => c.id === id)
+    if (index === -1) throw new Error(`등록되지 않은 캐릭터입니다: ${id}`)
+    const [removed] = this.settings.characters.splice(index, 1)
+    const previousActive = this.settings.activeId
+    if (previousActive === id) this.settings.activeId = null
+    try {
+      this.save()
+    } catch (error) {
+      this.settings.characters.splice(index, 0, removed)
+      this.settings.activeId = previousActive
+      throw error
+    }
+    // 목록에서는 이미 사라졌으므로 폴더 삭제 실패는 무시한다
+    try {
+      rmSync(this.characterDir(id), { recursive: true, force: true })
+    } catch {
+      /* 무시 */
+    }
+  }
+
+  /** 캐릭터 이미지를 읽는다. 없거나 읽을 수 없으면 null. */
+  readImage(id: string, kind: 'walk' | 'idle'): Buffer | null {
+    try {
+      return readFileSync(join(this.characterDir(id), `${kind}.png`))
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 활성 캐릭터를 오버레이에 적용할 모습으로 만든다. 기본 캐릭터이거나 이미지를 읽을 수 없으면
+   * 기본 모습(URL이 null)을 돌려준다. 읽을 수 없는 경우 활성을 기본으로 되돌리고 알림을 남긴다 (FR-015).
+   */
+  readAppearance(): Appearance {
+    const fallback: Appearance = { walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames }
+    const id = this.settings.activeId
+    if (id === null) return fallback
+    const character = this.settings.characters.find((c) => c.id === id)
+    const walk = character ? this.readImage(id, 'walk') : null
+    const idle = character ? this.readImage(id, 'idle') : null
+    if (!character || !walk || !idle) {
+      this.settings.activeId = null
+      this.notice = `선택한 캐릭터${character ? ` "${character.name}"` : ''}의 이미지를 읽을 수 없어 기본 캐릭터로 표시합니다.`
+      try {
+        this.save()
+      } catch {
+        /* 저장 실패해도 이번 실행에서는 기본으로 표시한다 */
+      }
+      return fallback
+    }
+    return {
+      walkUrl: `data:image/png;base64,${walk.toString('base64')}`,
+      idleUrl: `data:image/png;base64,${idle.toString('base64')}`,
+      frames: character.frames
     }
   }
 

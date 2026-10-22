@@ -1,4 +1,4 @@
-import type { CharacterUpdate, KakaruApi } from '../shared/ipc'
+import type { Appearance, CharacterUpdate, KakaruApi } from '../shared/ipc'
 import idleUrl from './assets/idle.png'
 import walkUrl from './assets/walk.png'
 
@@ -27,8 +27,29 @@ const FRAME_MS = 70
 const actor = document.getElementById('actor') as HTMLDivElement
 const sprite = document.getElementById('sprite') as HTMLDivElement
 
-;(document.getElementById('walk') as HTMLImageElement).src = walkUrl
-;(document.getElementById('idle') as HTMLImageElement).src = idleUrl
+const walkImg = document.getElementById('walk') as HTMLImageElement
+const idleImg = document.getElementById('idle') as HTMLImageElement
+
+/** 활성 캐릭터의 모습을 반영한다. 이미지만 바뀌고 위치·방향·이동 상태는 그대로다 (FR-011). */
+let usingDefault = true
+
+function applyAppearance(appearance: Appearance): void {
+  usingDefault = appearance.walkUrl === null && appearance.idleUrl === null
+  setFrames(appearance.frames)
+  walkImg.src = appearance.walkUrl ?? walkUrl
+  idleImg.src = appearance.idleUrl ?? idleUrl
+}
+
+/** 사용자 이미지를 불러오지 못하면 기본 캐릭터로 되돌린다 (FR-015) */
+function useDefaultAppearance(): void {
+  applyAppearance({ walkUrl: null, idleUrl: null, frames: DEFAULT_FRAMES })
+}
+
+for (const img of [walkImg, idleImg]) {
+  img.addEventListener('error', () => {
+    if (!usingDefault) useDefaultAppearance()
+  })
+}
 
 let lastLook = ''
 
@@ -39,8 +60,6 @@ function setFrames(frames: number): void {
   root.setProperty('--strip', `${frames * SIZE}px`)
   root.setProperty('--cycle', `${Math.max(MIN_CYCLE_MS, frames * FRAME_MS)}ms`)
 }
-
-setFrames(DEFAULT_FRAMES)
 
 function move(x: number, y: number, vx: number, vy: number): void {
   actor.style.transition = 'none'
@@ -66,4 +85,6 @@ function apply(update: CharacterUpdate): void {
   move(update.x, update.y, update.vx, update.vy)
 }
 
+useDefaultAppearance()
+window.kakaru.onAppearance(applyAppearance)
 window.kakaru.onCharacterUpdate(apply)

@@ -104,3 +104,61 @@ describe('CharacterService.register', () => {
     expect(() => service.register({ ...input(), walk: 'x' as unknown as ArrayBuffer })).toThrow()
   })
 })
+
+describe('CharacterService.apply / delete', () => {
+  it('apply(id)로 활성 캐릭터를 바꾸고 appearance가 그 이미지를 돌려준다', () => {
+    const { service } = setup()
+    const r = service.register(input('가'))
+    if (!r.ok) throw new Error('등록 실패')
+    expect(service.apply(r.id)).toEqual({ ok: true })
+    expect(service.list().activeId).toBe(r.id)
+    expect(service.appearance().walkUrl?.startsWith('data:image/png;base64,')).toBe(true)
+    expect(service.appearance().frames).toBe(4)
+  })
+
+  it('apply(null)은 기본 캐릭터로 되돌린다', () => {
+    const { service } = setup()
+    const r = service.register(input('가'))
+    if (!r.ok) throw new Error('등록 실패')
+    service.apply(r.id)
+    expect(service.apply(null)).toEqual({ ok: true })
+    expect(service.list().activeId).toBeNull()
+    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+  })
+
+  it('등록되지 않은 id를 적용하면 실패 메시지를 돌려준다', () => {
+    const { service } = setup()
+    const r = service.apply('zzzz9999')
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.message.length).toBeGreaterThan(0)
+  })
+
+  it('delete는 목록에서 지우고, 활성 캐릭터이면 기본으로 돌아간다 (FR-013)', () => {
+    const { service } = setup()
+    const r = service.register(input('가'))
+    if (!r.ok) throw new Error('등록 실패')
+    service.apply(r.id)
+    expect(service.delete(r.id)).toEqual({ ok: true })
+    const list = service.list()
+    expect(list.characters.map((c) => c.name)).toEqual([LIMITS.reservedName])
+    expect(list.activeId).toBeNull()
+  })
+
+  it('기본 캐릭터(null)는 삭제할 수 없다 (FR-014)', () => {
+    const { service } = setup()
+    const r = service.delete(null as unknown as string)
+    expect(r.ok).toBe(false)
+  })
+
+  it('활성 캐릭터 이미지가 사라지면 appearance는 기본으로 대체하고 list에 알림이 나타난다 (FR-015)', () => {
+    const { service, store } = setup()
+    const r = service.register(input('가'))
+    if (!r.ok) throw new Error('등록 실패')
+    service.apply(r.id)
+    rmSync(join(store.characterDir(r.id), 'walk.png'))
+    expect(service.appearance()).toEqual({ walkUrl: null, idleUrl: null, frames: LIMITS.defaultFrames })
+    const list = service.list()
+    expect(list.notice).toBeTruthy()
+    expect(list.activeId).toBeNull()
+  })
+})

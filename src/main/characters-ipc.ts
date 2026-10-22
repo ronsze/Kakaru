@@ -1,7 +1,9 @@
 import { ipcMain, nativeImage } from 'electron'
 import type { ImageInspector } from '../shared/characters'
 import {
+  CHANNEL_CHARACTERS_APPLY,
   CHANNEL_CHARACTERS_CHANGED,
+  CHANNEL_CHARACTERS_DELETE,
   CHANNEL_CHARACTERS_LIST,
   CHANNEL_CHARACTERS_REGISTER,
   CHANNEL_CHARACTERS_VALIDATE
@@ -37,7 +39,12 @@ function assertRegisterInput(value: unknown): RegisterInput {
   return v as RegisterInput
 }
 
-export function registerCharactersIpc(service: CharacterService): void {
+export type CharactersIpcHooks = {
+  /** 활성 캐릭터가 바뀌었을 수 있을 때(선택·삭제 후) 호출된다. 오버레이에 새 모습을 보낸다. */
+  onAppearanceChanged(): void
+}
+
+export function registerCharactersIpc(service: CharacterService, hooks: CharactersIpcHooks): void {
   ipcMain.handle(CHANNEL_CHARACTERS_LIST, () => service.list())
   ipcMain.handle(CHANNEL_CHARACTERS_VALIDATE, (_event, input: unknown) =>
     service.validate(assertRegisterInput(input))
@@ -45,6 +52,24 @@ export function registerCharactersIpc(service: CharacterService): void {
   ipcMain.handle(CHANNEL_CHARACTERS_REGISTER, (_event, input: unknown) => {
     const result = service.register(assertRegisterInput(input))
     if (result.ok) notifyCharactersChanged()
+    return result
+  })
+  ipcMain.handle(CHANNEL_CHARACTERS_APPLY, (_event, id: unknown) => {
+    if (id !== null && typeof id !== 'string') return { ok: false, message: '요청 형식이 올바르지 않습니다.' }
+    const result = service.apply(id)
+    if (result.ok) {
+      hooks.onAppearanceChanged()
+      notifyCharactersChanged()
+    }
+    return result
+  })
+  ipcMain.handle(CHANNEL_CHARACTERS_DELETE, (_event, id: unknown) => {
+    if (typeof id !== 'string') return { ok: false, message: '기본 캐릭터는 삭제할 수 없습니다.' }
+    const result = service.delete(id)
+    if (result.ok) {
+      hooks.onAppearanceChanged()
+      notifyCharactersChanged()
+    }
     return result
   })
 }

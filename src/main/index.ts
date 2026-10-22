@@ -1,5 +1,6 @@
-import { app } from 'electron'
+import { app, type BrowserWindow } from 'electron'
 import { ContextMenuController } from '../shared/context-menu-controller'
+import { CHANNEL_APPEARANCE } from '../shared/ipc'
 import { CharacterService } from './characters-service'
 import { CharacterStore } from './characters-store'
 import { nativeImageInspector, registerCharactersIpc } from './characters-ipc'
@@ -25,10 +26,24 @@ app.whenReady().then(() => {
 
   const store = new CharacterStore(app.getPath('userData'))
   store.load()
-  registerCharactersIpc(new CharacterService(store, nativeImageInspector))
+  const characters = new CharacterService(store, nativeImageInspector)
+  // 활성 캐릭터의 모습. 오버레이 창이 로드를 마칠 때마다, 그리고 바뀔 때마다 보낸다.
+  let appearance = characters.appearance()
+  const sendAppearance = (win: BrowserWindow) => win.webContents.send(CHANNEL_APPEARANCE, appearance)
 
   const menu = new ContextMenuController({ setUserControlled, openSettings: openSettingsWindow })
-  const overlays = new OverlayManager({ onCreate: (win) => attachContextMenu(win, menu) })
+  const overlays = new OverlayManager({
+    onCreate: (win) => {
+      attachContextMenu(win, menu)
+      win.webContents.on('did-finish-load', () => sendAppearance(win))
+    }
+  })
+  registerCharactersIpc(characters, {
+    onAppearanceChanged: () => {
+      appearance = characters.appearance()
+      for (const [, win] of overlays.all()) if (!win.isDestroyed()) sendAppearance(win)
+    }
+  })
   overlays.sync()
   // visibleOnFullScreen 설정이 Dock 아이콘을 다시 보이게 할 수 있어 창 생성 뒤 한 번 더 숨긴다
   if (process.platform === 'darwin') app.dock?.hide()
