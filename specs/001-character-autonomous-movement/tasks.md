@@ -48,6 +48,7 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 - [ ] T008 [P] `src/shared/ipc.ts`에 채널 이름 `character:update`와 페이로드 타입 `CharacterUpdate {visible: boolean, x: number, y: number, heading: -1 | 1, state: 'Walking' | 'Idle' | 'UserControlled'}` 정의(contracts/ipc.md 기준)
 - [ ] T009 `src/preload/index.ts`에 `contextBridge`로 `onCharacterUpdate(callback)`만 노출(렌더러에 Node 접근을 주지 않는다), T008 타입 사용
 - [ ] T010 `src/main/index.ts`에 앱 진입점 작성: `app.whenReady()`, 단일 인스턴스 잠금, macOS Dock 아이콘 숨김(`app.dock.hide()`), 모든 창이 닫혀도 앱 유지, 종료 처리
+- [x] T011 `specs/001-character-autonomous-movement/spec.md` 보완 반영 확인: FR-003·FR-004·SC-003·SC-006·SC-007과 US3 범위 명시, quickstart.md 수동 #9 추가가 spec/quickstart에 반영돼 있는지 확인하고 research R9의 성능 기준과 일치시킨다(헌장 원칙 III: 수치 기준은 스펙에서 정의)
 
 **Checkpoint**: 기반 완료 — 사용자 스토리 구현 시작 가능
 
@@ -63,21 +64,21 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 > **NOTE: 구현 전에 먼저 작성하고 실패를 확인한다**
 
-- [ ] T011 [P] [US1] `tests/unit/area.test.ts`: `WalkableArea`의 `contains`, `containsSegment`(L자 배치처럼 비직사각형에서 빈 공간을 지나는 선분은 false), `clamp`(영역 밖 점을 가장 가까운 내부 점으로), `displayAt` 검증
-- [ ] T012 [P] [US1] `tests/unit/behavior.test.ts`: 시작 후 5초 안에 Walking 진입(SC-001), 목표 도달 시 Walking→Idle, Idle 만료 시 Idle→Walking, 10분 분량 시뮬레이션에서 `position`이 항상 영역 안, 한 방향으로만 끝없이 이동하지 않음(FR-003), `state !== Walking`이면 `velocity`가 0
+- [ ] T012 [P] [US1] `tests/unit/area.test.ts`: `WalkableArea`의 `contains`, `containsSegment`(L자 배치처럼 비직사각형에서 빈 공간을 지나는 선분은 false), `clamp`(영역 밖 점을 가장 가까운 내부 점으로), `displayAt` 검증
+- [ ] T013 [P] [US1] `tests/unit/behavior.test.ts`: 시작 후 5초 안에 Walking 진입(SC-001), 목표 도달 시 Walking→Idle, Idle 만료 시 Idle→Walking, 고정 시드와 고정 dt(1/60초)로 10분 분량을 시뮬레이션해 `position`이 항상 영역 안, 한 방향으로만 끝없이 이동하지 않음(FR-003), `state !== Walking`이면 `velocity`가 0
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] `src/shared/area.ts`에 `WalkableArea` 구현: `displays: Rect[]`, `contains(point)`, `containsSegment(a, b)`, `clamp(point)`, `displayAt(point)` (data-model.md 연산 정의대로)
-- [ ] T014 [US1] `src/shared/behavior.ts`에 `MovementEngine` 구현(T013 의존): `tick(now, dt): Character`, `setWalkableArea(area)`. 검증 규칙을 코드로 보장 — "`position`은 항상 `WalkableArea` 안에 있어야 한다", "`state === Walking`이면 `target !== null`이고, 현재 위치→`target` 직선이 `WalkableArea` 안에 있어야 한다", "`state !== Walking`이면 `velocity`는 0이다". 직선 경로가 막히면 다른 목표를 다시 고르고, 직전 이동 방향과 다른 쪽을 우선한다
-- [ ] T015 [P] [US1] `src/renderer/index.html`과 `src/renderer/draw.ts`: 배경이 완전히 투명한 전체 크기 Canvas 2D, `onCharacterUpdate`를 받아 `visible`이면 `(x, y)`에 폴리곤으로 그린 캐릭터(몸·머리·다리·눈, research R11)를 `heading`에 따라 좌우 반전해 그리고 아니면 비움. `state`가 Walking이면 다리·몸 좌표를 시간에 따라 흔들고 Idle/UserControlled이면 숨쉬기 정도의 미세 움직임만 준다. 외부 이미지 파일은 사용하지 않는다
-- [ ] T016 [US1] `src/main/overlay.ts`: 디스플레이마다 `BrowserWindow`를 만들어 해당 `bounds`에 맞춤. 옵션은 `transparent: true`, `frame: false`, `alwaysOnTop: true`, `skipTaskbar: true`, `focusable: false`, `hasShadow: false`, `webPreferences`에 preload 지정·`contextIsolation: true`. 생성 직후 `setIgnoreMouseEvents(true)`로 기본 클릭 통과 상태 유지. `displayId → window` 맵 제공
-- [ ] T017 [US1] `src/main/simulation.ts`: 60Hz 틱 루프. `screen.getAllDisplays()`의 `bounds`로 `WalkableArea` 구성, `MovementEngine.tick` 호출, `area.displayAt(position)`에 해당하는 창에는 `visible: true`와 창 로컬 좌표, 나머지 창에는 `visible: false`로 `character:update` 전송
-- [ ] T018 [US1] `src/main/index.ts`에서 `overlay`와 `simulation`을 연결해 앱 시작 시 오버레이 생성 및 시뮬레이션 시작(T010, T016, T017 의존)
-- [ ] T019 [US1] `src/main/overlay.ts`와 `src/main/simulation.ts`에 `screen`의 `display-added`/`display-removed`/`display-metrics-changed` 구독 추가: 오버레이 창 재구성, `WalkableArea` 갱신, 영역 밖이면 `clamp` (FR-008)
-- [ ] T020 [US1] `src/main/simulation.ts`에 `powerMonitor`의 `resume` 구독 추가: 틱 기준 시각을 초기화해 큰 시간 점프 방지
-- [ ] T021 [P] [US1] `tests/e2e/launch.test.ts`(Playwright Electron): 앱 기동 후 5초 안에 `character:update`의 위치가 변하고, 오버레이 창이 `setIgnoreMouseEvents(true)` 상태로 시작하는지 확인
-- [ ] T022 [US1] macOS와 Windows에서 quickstart.md 수동 #1, #2, #6, #8을 실행하고 결과를 `tests/manual/results.md`에 기록
+- [ ] T014 [P] [US1] `src/shared/area.ts`에 `WalkableArea` 구현: `displays: Rect[]`, `contains(point)`, `containsSegment(a, b)`, `clamp(point)`, `displayAt(point)` (data-model.md 연산 정의대로)
+- [ ] T015 [US1] `src/shared/behavior.ts`에 `MovementEngine` 구현(T014 의존): `tick(now, dt): Character`, `setWalkableArea(area)`. 검증 규칙을 코드로 보장 — "`position`은 항상 `WalkableArea` 안에 있어야 한다", "`state === Walking`이면 `target !== null`이고, 현재 위치→`target` 직선이 `WalkableArea` 안에 있어야 한다", "`state !== Walking`이면 `velocity`는 0이다". 직선 경로가 막히면 다른 목표를 다시 고르고, 직전 이동 방향과 다른 쪽을 우선한다. 난수원은 시드 가능한 함수(`random: () => number`)를 생성자 인자로 받고, 시각은 `tick(now, dt)` 인자로만 받아 테스트가 결정적이다
+- [ ] T016 [P] [US1] `src/renderer/index.html`과 `src/renderer/draw.ts`: 배경이 완전히 투명한 전체 크기 Canvas 2D, `onCharacterUpdate`를 받아 `visible`이면 `(x, y)`에 폴리곤으로 그린 캐릭터(몸·머리·다리·눈, research R11)를 `heading`에 따라 좌우 반전해 그리고 아니면 비움. `state`가 Walking이면 다리·몸 좌표를 시간에 따라 흔들고 Idle/UserControlled이면 숨쉬기 정도의 미세 움직임만 준다. 외부 이미지 파일은 사용하지 않는다
+- [ ] T017 [US1] `src/main/overlay.ts`: 디스플레이마다 `BrowserWindow`를 만들어 해당 `bounds`에 맞춤. 옵션은 `transparent: true`, `frame: false`, `alwaysOnTop: true`, `skipTaskbar: true`, `focusable: false`, `hasShadow: false`, `webPreferences`에 preload 지정·`contextIsolation: true`. 생성 직후 `setIgnoreMouseEvents(true)`로 기본 클릭 통과 상태 유지. `displayId → window` 맵 제공
+- [ ] T018 [US1] `src/main/simulation.ts`: 60Hz 틱 루프. `screen.getAllDisplays()`의 `bounds`로 `WalkableArea` 구성, `MovementEngine.tick` 호출, `area.displayAt(position)`에 해당하는 창에는 `visible: true`와 창 로컬 좌표, 나머지 창에는 `visible: false`로 `character:update` 전송. 히트 테스트가 쓸 수 있도록 현재 캐릭터와 이동 가능 영역을 반환하는 `getCharacter()`를 export한다
+- [ ] T019 [US1] `src/main/index.ts`에서 `overlay`와 `simulation`을 연결해 앱 시작 시 오버레이 생성 및 시뮬레이션 시작(T010, T017, T018 의존)
+- [ ] T020 [US1] `src/main/overlay.ts`와 `src/main/simulation.ts`에 `screen`의 `display-added`/`display-removed`/`display-metrics-changed` 구독 추가: 오버레이 창 재구성, `WalkableArea` 갱신, 영역 밖이면 `clamp` (FR-008)
+- [ ] T021 [US1] `src/main/simulation.ts`에 `powerMonitor`의 `resume` 구독 추가: 틱 기준 시각을 초기화해 큰 시간 점프 방지
+- [ ] T022 [US1] `tests/e2e/launch.test.ts`(T019 이후, Playwright Electron): 앱 기동 후 5초 안에 `character:update`의 위치가 변하고, 오버레이 창이 `setIgnoreMouseEvents(true)` 상태로 시작하는지 확인
+- [ ] T023 [US1] macOS와 Windows에서 quickstart.md 수동 #1, #2, #6, #8을 실행하고 결과를 `tests/manual/results.md`에 기록
 
 **Checkpoint**: 이 시점에 US1은 단독으로 완전히 동작하고 검증 가능해야 한다(MVP)
 
@@ -91,18 +92,18 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T023 [P] [US2] `tests/unit/hit.test.ts`: 커서가 `position`에서 `hitRadius` 이내이면 true, 경계 바로 밖이면 false, 서로 다른 디스플레이 좌표에서도 가상 데스크탑 좌표 기준으로 판정
+- [ ] T024 [P] [US2] `tests/unit/hit.test.ts`: 커서가 `position`에서 `hitRadius` 이내이면 true, 경계 바로 밖이면 false, 서로 다른 디스플레이 좌표에서도 가상 데스크탑 좌표 기준으로 판정
 
 ### Implementation for User Story 2
 
-- [ ] T024 [P] [US2] `src/shared/hit.ts`에 순수 함수 `isCursorOnCharacter(cursor, character)` 구현(Electron 비의존, `Character.hitRadius` 사용)
-- [ ] T025 [US2] `src/main/hit-test.ts`: 약 60Hz로 `screen.getCursorScreenPoint()`를 폴링해 `isCursorOnCharacter`가 true이면 캐릭터가 있는 디스플레이의 창만 `setIgnoreMouseEvents(false)`, 아니면 `true`. 값이 바뀔 때만 호출하고, 사용자 조작 중(`UserControlled`)에는 해제 상태를 유지(T024 의존)
-- [ ] T026 [P] [US2] `src/main/platform/index.ts`에 `PlatformAdapter { configureOverlay(win: BrowserWindow): void }`와 `process.platform` 기반 선택 로직 정의
-- [ ] T027 [P] [US2] `src/main/platform/mac.ts`: `setAlwaysOnTop(true, 'screen-saver')`, `setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })`
-- [ ] T028 [P] [US2] `src/main/platform/win.ts`: `setAlwaysOnTop(true, 'screen-saver')`
-- [ ] T029 [US2] `src/main/overlay.ts`의 창 생성 직후 `platform.configureOverlay(win)` 호출, `src/main/index.ts`에서 `hit-test` 시작(T025, T026~T028 의존)
-- [ ] T030 [P] [US2] `tests/e2e/click-through.test.ts`: 커서를 캐릭터 밖으로 두면 오버레이 창이 통과 상태, 캐릭터 위로 옮기면 해제 상태가 되는지 메인 프로세스 평가로 확인
-- [ ] T031 [US2] macOS와 Windows에서 quickstart.md 수동 #3, #4, #5, #7을 실행하고, 캐릭터 진입 직후 첫 클릭이 유실되는지(research R2 검증 항목)와 전체 화면 앱 위 표시 여부(R3)를 `tests/manual/results.md`에 기록
+- [ ] T025 [P] [US2] `src/shared/hit.ts`에 순수 함수 `isCursorOnCharacter(cursor, character)` 구현(Electron 비의존, `Character.hitRadius` 사용)
+- [ ] T026 [US2] `src/main/hit-test.ts`: 약 60Hz로 `screen.getCursorScreenPoint()`를 폴링하고 `simulation.getCharacter()`(T018)로 위치·상태를 얻어 `isCursorOnCharacter`가 true이면 캐릭터가 있는 디스플레이의 창만 `setIgnoreMouseEvents(false)`, 아니면 `true`. 값이 바뀔 때만 호출하고, 사용자 조작 중(`UserControlled`)에는 해제 상태를 유지(T018, T025 의존)
+- [ ] T027 [P] [US2] `src/main/platform/index.ts`에 `PlatformAdapter { configureOverlay(win: BrowserWindow): void }`와 `process.platform` 기반 선택 로직 정의
+- [ ] T028 [P] [US2] `src/main/platform/mac.ts`: `setAlwaysOnTop(true, 'screen-saver')`, `setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })`
+- [ ] T029 [P] [US2] `src/main/platform/win.ts`: `setAlwaysOnTop(true, 'screen-saver')`
+- [ ] T030 [US2] `src/main/overlay.ts`의 창 생성 직후 `platform.configureOverlay(win)` 호출, `src/main/index.ts`에서 `hit-test` 시작(T026, T027~T029 의존)
+- [ ] T031 [US2] `tests/e2e/click-through.test.ts`(T030 이후): 커서를 캐릭터 밖으로 두면 오버레이 창이 통과 상태, 캐릭터 위로 옮기면 해제 상태가 되는지 메인 프로세스 평가로 확인
+- [ ] T032 [US2] macOS와 Windows에서 quickstart.md 수동 #3, #4, #5, #7, #9(작업 표시줄·메뉴 막대·Dock 위 표시와 조작)를 실행하고, 캐릭터 진입 직후 첫 클릭이 유실되는지(research R2 검증 항목)와 전체 화면 앱 위 표시 여부(R3)를 `tests/manual/results.md`에 기록
 
 **Checkpoint**: US1과 US2가 모두 독립적으로 동작해야 한다
 
@@ -116,12 +117,12 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T032 [P] [US3] `tests/unit/behavior-user-control.test.ts`: `setUserControlled(true)` 호출 후 한 틱 안에 `state === 'UserControlled'`, `velocity`는 0, 이후 틱에서 `position` 불변(FR-006, SC-004). Walking·Idle 어디서든 진입 가능. `setUserControlled(false)` 시 항상 `Idle`로 복귀하고 `stateUntil`을 새로 설정하며 `position`은 그 자리 유지
+- [ ] T033 [P] [US3] `tests/unit/behavior-user-control.test.ts`: `setUserControlled(true)` 호출 후 한 틱 안에 `state === 'UserControlled'`, `velocity`는 0, 이후 틱에서 `position` 불변(FR-006, SC-004). Walking·Idle 어디서든 진입 가능. `setUserControlled(false)` 시 항상 `Idle`로 복귀하고 `stateUntil`을 새로 설정하며 `position`은 그 자리 유지
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] `src/shared/behavior.ts`에 `setUserControlled(active, now)` 구현: "`state === UserControlled`이면 자율 이동 로직은 `position`을 바꾸지 않는다", 종료 시 data-model.md 규칙대로 `Idle` 복귀(T014 의존)
-- [ ] T034 [US3] `src/main/simulation.ts`에서 `setUserControlled(active)`를 내부 API로 export: 호출 즉시 엔진에 반영하고 다음 `character:update`의 `state`에 반영. 렌더러 입력 IPC 채널은 롱프레스·메뉴 기능에서 추가하므로 이번에는 만들지 않는다(contracts/ipc.md)
+- [ ] T034 [US3] `src/shared/behavior.ts`에 `setUserControlled(active, now)` 구현: "`state === UserControlled`이면 자율 이동 로직은 `position`을 바꾸지 않는다", 종료 시 data-model.md 규칙대로 `Idle` 복귀(T015 의존)
+- [ ] T035 [US3] `src/main/simulation.ts`에서 `setUserControlled(active)`를 내부 API로 export: 호출 즉시 엔진에 반영하고 다음 `character:update`의 `state`에 반영. 렌더러 입력 IPC 채널은 롱프레스·메뉴 기능에서 추가하므로 이번에는 만들지 않는다(contracts/ipc.md)
 
 **Checkpoint**: 세 스토리가 모두 독립적으로 동작해야 한다
 
@@ -131,10 +132,9 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 **Purpose**: 여러 스토리에 걸친 마무리
 
-- [ ] T035 [P] 저장소 루트에 한국어 `README.md` 작성: 프로젝트 소개, 실행(`npm run dev`)·테스트(`npm test`, `npm run test:e2e`) 방법, 지원 OS
-- [ ] T036 macOS와 Windows에서 유휴 평균 CPU와 메모리를 측정해 plan.md의 목표(CPU 3% 이하, 메모리 300MB 이하, 30fps 이상)와 비교하고 `tests/manual/results.md`에 기록
-- [ ] T037 `specs/001-character-autonomous-movement/spec.md`에 research R9의 성능 기준을 Success Criteria로 추가하고, FR-004 "사용 가능한 화면 영역"을 "화면 전체"로 정리(R4)
-- [ ] T038 quickstart.md 전체 절차(자동 + 수동 #1~#8)를 macOS·Windows에서 최종 검증
+- [ ] T036 [P] 저장소 루트에 한국어 `README.md` 작성: 프로젝트 소개, 실행(`npm run dev`)·테스트(`npm test`, `npm run test:e2e`) 방법, 지원 OS
+- [ ] T037 macOS와 Windows에서 유휴 평균 CPU와 메모리를 측정해 spec의 SC-006·SC-007 기준(CPU 3% 이하, 메모리 300MB 이하, 30fps 이상)과 비교하고 `tests/manual/results.md`에 기록
+- [ ] T038 quickstart.md 전체 절차(자동 + 수동 #1~#9)를 macOS·Windows에서 최종 검증하고, T032의 전체 화면 앱 위 표시 결과를 spec Edge Cases에 OS별 차이로 반영한다(헌장: 한 OS에서만 되는 동작은 스펙에 명시)
 
 ---
 
@@ -145,15 +145,15 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 - **Setup (Phase 1)**: 의존 없음 — 바로 시작
 - **Foundational (Phase 2)**: Setup 완료 후 — 모든 사용자 스토리를 막는다
 - **User Stories (Phase 3~5)**: Foundational 완료 후 시작
-  - US2는 US1의 오버레이·시뮬레이션(T016~T018)에 의존한다(통과 해제를 걸 대상이 필요)
-  - US3는 US1의 `MovementEngine`(T014)에 의존하고, US2와는 독립적이다
+  - US2는 US1의 오버레이·시뮬레이션(T017~T019)에 의존한다(통과 해제를 걸 대상이 필요)
+  - US3는 US1의 `MovementEngine`(T015)에 의존하고, US2와는 독립적이다
 - **Polish (Phase 6)**: 원하는 스토리가 모두 끝난 뒤
 
 ### User Story Dependencies
 
 - **US1 (P1)**: Foundational 이후 시작, 다른 스토리에 의존 없음
-- **US2 (P2)**: US1의 오버레이 창(T016)·시뮬레이션(T017) 위에 얹는다. 순수 로직(T024)은 먼저 시작 가능
-- **US3 (P3)**: US1의 `behavior.ts`(T014) 이후. 같은 파일을 수정하므로 T014 완료 후 순차 진행
+- **US2 (P2)**: US1의 오버레이 창(T017)·시뮬레이션(T018) 위에 얹는다. 순수 로직(T025)은 먼저 시작 가능
+- **US3 (P3)**: US1의 `behavior.ts`(T015) 이후. 같은 파일을 수정하므로 T015 완료 후 순차 진행
 
 ### Within Each User Story
 
@@ -165,9 +165,9 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 
 - Setup: T002~T005 병렬
 - Foundational: T006~T008 병렬
-- US1: T011·T012(테스트), T013·T015 병렬
-- US2: T023·T024, T026~T028, T030 병렬
-- 서로 다른 개발자가 US2의 순수 로직(T023·T024·T026~T028)과 US3 테스트(T032)를 동시에 진행할 수 있다
+- US1: T012·T013(테스트), T014·T016 병렬
+- US2: T024·T025, T027~T029 병렬
+- 서로 다른 개발자가 US2의 순수 로직(T024·T025·T027~T029)과 US3 테스트(T033)를 동시에 진행할 수 있다
 
 ---
 
