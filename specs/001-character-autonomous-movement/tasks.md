@@ -78,7 +78,7 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 - [x] T020 [US1] `src/main/overlay.ts`와 `src/main/simulation.ts`에 `screen`의 `display-added`/`display-removed`/`display-metrics-changed` 구독 추가: 오버레이 창 재구성, `WalkableArea` 갱신, 영역 밖이면 `clamp` (FR-008)
 - [x] T021 [US1] `src/main/simulation.ts`에 `powerMonitor`의 `resume` 구독 추가: 틱 기준 시각을 초기화해 큰 시간 점프 방지
 - [x] T022 [US1] `tests/e2e/launch.test.ts`(T019 이후, Playwright Electron): 앱 기동 후 5초 안에 `character:update`의 위치가 변하는지 확인(오버레이의 `setIgnoreMouseEvents(true)` 상태는 Electron이 조회 API를 제공하지 않아 E2E에서 확인할 수 없으므로 수동 #3·#4로 검증)
-- [ ] T023 [US1] macOS와 Windows에서 quickstart.md 수동 #1, #2, #6, #8을 실행하고 결과를 `tests/manual/results.md`에 기록
+- [ ] T023 [US1] macOS와 Windows에서 quickstart.md 수동 #1, #2, #6, #8을 실행하고 결과를 `tests/manual/results.md`에 기록 (진행: macOS #1·#2 통과, 남음: macOS #6·#8, Windows 전체)
 
 **Checkpoint**: 이 시점에 US1은 단독으로 완전히 동작하고 검증 가능해야 한다(MVP)
 
@@ -103,7 +103,7 @@ description: "캐릭터 자율 이동 구현 작업 목록"
 - [x] T029 [P] [US2] `src/main/platform/win.ts`: `setAlwaysOnTop(true, 'screen-saver')`
 - [x] T030 [US2] `src/main/overlay.ts`의 창 생성 직후 `platform.configureOverlay(win)` 호출, `src/main/index.ts`에서 `hit-test` 시작(T026, T027~T029 의존)
 - [x] T031 [US2] `tests/e2e/click-through.test.ts`(T030 이후): 커서를 캐릭터 밖으로 두면 오버레이 창이 통과 상태, 캐릭터 위로 옮기면 해제 상태가 되는지 확인. Electron이 창의 통과 상태 조회와 커서 위치 조작 API를 제공하지 않아 E2E 대신 `tests/unit/hit.test.ts`의 `HitTester` 테스트(포트 주입)로 대체했고, 실제 동작은 수동 #3·#5로 검증한다
-- [ ] T032 [US2] macOS와 Windows에서 quickstart.md 수동 #3, #4, #5, #7, #9(작업 표시줄·메뉴 막대·Dock 위 표시와 조작)를 실행하고, 캐릭터 진입 직후 첫 클릭이 유실되는지(research R2 검증 항목)와 전체 화면 앱 위 표시 여부(R3)를 `tests/manual/results.md`에 기록
+- [ ] T032 [US2] macOS와 Windows에서 quickstart.md 수동 #3, #4, #5, #7, #9(작업 표시줄·메뉴 막대·Dock 위 표시와 조작)를 실행하고, 캐릭터 진입 직후 첫 클릭이 유실되는지(research R2 검증 항목)와 전체 화면 앱 위 표시 여부(R3)를 `tests/manual/results.md`에 기록 (진행: macOS 전 항목 통과, 남음: Windows 전체)
 
 **Checkpoint**: US1과 US2가 모두 독립적으로 동작해야 한다
 
