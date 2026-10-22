@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'"
+      content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:"
     />
     <title>Kakaru</title>
     <style>
@@ -15,21 +15,61 @@
         overflow: hidden;
         background: transparent;
       }
-      /* 전체 화면 크기 캔버스를 다시 그리면 투명 창 합성 비용이 커서, 캐릭터 크기의 작은 캔버스를
-         transform으로 옮긴다 (compositor만 위치를 바꾸므로 다시 그리지 않는다). */
-      canvas {
+      /* 캐릭터 요소만 transform으로 옮긴다. 위치 이동과 걷기 프레임 전환 모두 CSS가 처리해
+         프레임마다 JS를 돌리지 않는다. */
+      #actor {
         display: none;
         position: absolute;
         top: 0;
         left: 0;
-        width: 200px;
-        height: 200px;
+        width: 100px;
+        height: 100px;
         will-change: transform;
+      }
+      #sprite {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        overflow: hidden;
+      }
+      #sprite.facing-left {
+        transform: scaleX(-1);
+      }
+      #sprite img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100px;
+      }
+      /* 걷기: 200x200 프레임 8장을 가로로 이은 시트(표시 크기 100px 기준 800px)를 transform으로
+         steps 이동한다. transform 애니메이션은 compositor가 처리해 다시 그리지 않는다. */
+      #walk {
+        width: 800px;
+        display: none;
+        animation: walk 0.56s steps(8) infinite;
+      }
+      #idle {
+        width: 100px;
+        display: none;
+      }
+      #sprite.walking #walk,
+      #sprite.idle #idle {
+        display: block;
+      }
+      @keyframes walk {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-800px);
+        }
       }
     </style>
   </head>
   <body>
-    <canvas id="stage"></canvas>
+    <div id="actor">
+      <div id="sprite" class="idle"><img id="walk" alt="" /><img id="idle" alt="" /></div>
+    </div>
     <script type="module" src="./draw.ts"></script>
   </body>
 </html>
