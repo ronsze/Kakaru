@@ -35,10 +35,13 @@ Kakaru는 데스크탑 화면 위에서 캐릭터가 돌아다니며 사용자�
   동작해야 한다(MUST). OS 전용 구현은 공통 인터페이스 뒤에 두고, 한 OS에서만 되는 기능은
   스펙에 그 사실을 명시한다.
 - TODO(TECH_STACK): 언어·프레임워크는 미정이며, 결정 시 이 섹션에 기록한다.
-- TODO(TEST_POLICY): 테스트 방식·아키텍처 선호·코드/문서 언어 규칙은 추후 정의한다.
+- TODO(TEST_POLICY): 테스트 방식·아키텍처 선호·코드 언어 규칙은 추후 정의한다.
 
 ## 개발 워크플로
 
+- Spec Kit으로 생성·갱신되는 모든 문서(spec, plan, tasks, checklist, research, 질문·보고 등)의
+  본문은 한국어로 작성한다(MUST). 템플릿의 고정 구조(헤딩 키워드, FR-001, MUST,
+  Given/When/Then 등)와 코드·식별자·고유명사는 원문을 유지해도 된다.
 - 기능 개발은 Spec Kit 흐름(specify → plan → tasks → implement)을 따른다.
 - 커밋 작성자는 이 저장소의 로컬 git 설정(`ronsze`)을 사용한다.
 - plan 단계에서 Core Principles 위반 여부를 점검하고, 위반 시 정당화를 기록한다.
@@ -53,4 +56,4 @@ Kakaru는 데스크탑 화면 위에서 캐릭터가 돌아다니며 사용자�
 
 plan 검토 시 헌장 준수 여부를 확인한다.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
+**Version**: 1.2.0 | **Ratified**: 2026-10-22 | **Last Amended**: 2026-10-22
